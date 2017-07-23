@@ -18,7 +18,7 @@ tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar len
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
 tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
-tf.app.flags.DEFINE_string("test_path", "run1485406844", "the dir to load checkpoint for forward only")
+tf.app.flags.DEFINE_string("test_path", "run1500783422", "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
 
 
