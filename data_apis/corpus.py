@@ -1,4 +1,4 @@
-# author: Tiancheng Zhao
+#    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
 import pickle as pkl
 from collections import Counter
 import numpy as np

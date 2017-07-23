@@ -1,5 +1,5 @@
-# @Time    : 12/13/16 12:17 PM
-# @Author  : Tiancheng Zhao
+#    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
+
 import tensorflow as tf
 import numpy as np
 from nltk.translate.bleu_score import sentence_bleu

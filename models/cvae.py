@@ -1,5 +1,4 @@
-# @Time    : 12/12/16 1:12 PM
-# @Author  : Tiancheng Zhao
+#    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
 
 import tensorflow as tf
 import os

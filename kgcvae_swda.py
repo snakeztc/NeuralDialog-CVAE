@@ -1,3 +1,5 @@
+#    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
+
 import os
 import time
 

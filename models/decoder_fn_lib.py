@@ -1,4 +1,4 @@
-# author: Tiancheng Zhao
+#    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
 from tensorflow.python.framework import dtypes
 from tensorflow.python.util import nest
 from tensorflow.python.framework import ops

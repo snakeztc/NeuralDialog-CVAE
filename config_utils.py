@@ -1,3 +1,6 @@
+#    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
+
+
 class KgCVAEConfig(object):
     description= None
     use_hcf = True  # use dialog act in training (if turn off kgCVAE -> CVAE)
