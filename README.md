@@ -8,6 +8,7 @@ See the [paper](https://arxiv.org/abs/1703.10960) for more details.
  - TensorFlow 0.12.1+
  - Python 2.7
  - Numpy
+ - NLTK
  - You may need to pip install beeprint if the module is missing
 
 # Usage
