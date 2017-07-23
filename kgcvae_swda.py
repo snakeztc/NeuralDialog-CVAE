@@ -1,5 +1,4 @@
 import os
-import pickle as pkl
 import time
 
 import numpy as np
@@ -137,7 +136,7 @@ def main():
                 if config.early_stop and patience <= done_epoch:
                     print("!!Early stop due to run out of patience!!")
                     break
-            print("Best test loss %f and perpleixyt %f" % (best_dev_loss, np.exp(best_dev_loss)))
+            print("Best validation loss %f" % best_dev_loss)
             print("Done training")
         else:
             # begin validation
