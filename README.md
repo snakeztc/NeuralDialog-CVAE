@@ -5,11 +5,10 @@ We provide a TensorFlow implementation of the CVAE-based dialog model described 
 See the [paper](https://arxiv.org/abs/1703.10960) for more details.
 
 # Prerequisites
-TensorFlow 1.0+
-Python 2.7
-Numpy
-
-- You may need to pip install beeprint if the module is missing
+ - TensorFlow 0.12.1+
+ - Python 2.7
+ - Numpy
+ - You may need to pip install beeprint if the module is missing
 
 # Usage
 ## Train a new model
@@ -56,7 +55,7 @@ If you want to train the model on your own data. Please create a pickle file has
     type(utts) = list
     utts[0] = ("A" or "B", "utterance in string", [dialog_act, other_meta_info])
 
-    # For example
+    # For example, a utterance look like this:
     ('B','especially your foreign cars',['statement-non-opinion'])
 
 Put the resulting file into ./data and set the **data_dir** in kgcvae_swda.py
