@@ -236,15 +236,12 @@ class KgRnnCVAE(BaseTFModel):
             recog_mu, recog_logvar = tf.split(recog_mulogvar, 2, axis=1)
 
         with variable_scope.variable_scope("priorNetwork"):
-            # two possible CVAE.
-            # P(XYZ) = P(Z)P(X)P(Y|X,Z) if independent_z
-            # or P(XYZ)=P(Z|X)P(X)P(Y|X,Z)
-            if config.independent_z:
-                prior_mu, prior_logvar = tf.zeros([batch_size, config.latent_size]), tf.log(tf.ones([batch_size, config.latent_size]))
-            else:
-                prior_fc1 = layers.fully_connected(cond_embedding, np.maximum(config.latent_size*2, 100), activation_fn=tf.tanh, scope="fc1")
-                prior_mulogvar = layers.fully_connected(prior_fc1, config.latent_size*2, activation_fn=None, scope="muvar")
-                prior_mu, prior_logvar = tf.split(prior_mulogvar, 2, axis=1)
+            # P(XYZ)=P(Z|X)P(X)P(Y|X,Z)
+            prior_fc1 = layers.fully_connected(cond_embedding, np.maximum(config.latent_size * 2, 100),
+                                               activation_fn=tf.tanh, scope="fc1")
+            prior_mulogvar = layers.fully_connected(prior_fc1, config.latent_size * 2, activation_fn=None,
+                                                    scope="muvar")
+            prior_mu, prior_logvar = tf.split(prior_mulogvar, 2, axis=1)
 
             # use sampled Z or posterior Z
             latent_sample = tf.cond(self.use_prior,

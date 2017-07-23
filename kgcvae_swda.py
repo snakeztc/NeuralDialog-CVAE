@@ -14,7 +14,7 @@ from models.cvae import KgRnnCVAE
 # constants
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
 tf.app.flags.DEFINE_string("data_dir", "data/full_swda_clean_42da_sentiment_dialog_corpus.p", "Raw data directory.")
-tf.app.flags.DEFINE_string("work_dir", "seq_working", "Experiment results directory.")
+tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
 tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
@@ -111,7 +111,7 @@ def main():
                 # begin validation
                 valid_feed.epoch_init(valid_config.batch_size, valid_config.backward_size,
                                       valid_config.step_size, shuffle=False, intra_shuffle=False)
-                valid_loss = valid_model.valid("ELBO_VALID", sess, valid_feed, marginal=False)
+                valid_loss = valid_model.valid("ELBO_VALID", sess, valid_feed)
 
                 test_feed.epoch_init(test_config.batch_size, test_config.backward_size,
                                      test_config.step_size, shuffle=True, intra_shuffle=False)
@@ -144,24 +144,17 @@ def main():
             # begin validation
             valid_feed.epoch_init(valid_config.batch_size, valid_config.backward_size,
                                   valid_config.step_size, shuffle=False, intra_shuffle=False)
-            valid_model.valid("ELBO_VALID", sess, valid_feed, marginal=False)
+            valid_model.valid("ELBO_VALID", sess, valid_feed)
 
             test_feed.epoch_init(valid_config.batch_size, valid_config.backward_size,
                                   valid_config.step_size, shuffle=False, intra_shuffle=False)
-            valid_model.valid("ELBO_TEST", sess, test_feed, marginal=False)
+            valid_model.valid("ELBO_TEST", sess, test_feed)
 
             dest_f = open(os.path.join(log_dir, "test.txt"), "wb")
             test_feed.epoch_init(test_config.batch_size, test_config.backward_size,
                                  test_config.step_size, shuffle=False, intra_shuffle=False)
             test_model.test(sess, test_feed, num_batch=None, repeat=10, dest=dest_f)
             dest_f.close()
-
-            # save p(z|x,y) into a pickle file as numpy matrix from the recognition network
-            test_feed.epoch_init(test_config.batch_size, test_config.backward_size,
-                                 test_config.step_size, shuffle=False, intra_shuffle=False)
-            all_posteriors = test_model.get_posterior(sess, test_feed)
-            pkl.dump(all_posteriors, open(os.path.join(log_dir, "qzxy.p"), "wb"))
-
 
 if __name__ == "__main__":
     if FLAGS.forward_only:

@@ -13,7 +13,6 @@ class KgCVAEConfig(object):
     latent_size = 200  # the dimension of latent variable
     full_kl_step = 10000  # how many batch before KL cost weight reaches 1.0
     dec_keep_prob = 1.0  # do we use word drop decoder [Bowman el al 2015]
-    independent_z = False # does z depending on c?
 
     # Network general
     cell_type = "gru"  # gru or lstm
