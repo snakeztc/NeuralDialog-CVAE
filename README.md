@@ -5,7 +5,8 @@ We provide a TensorFlow implementation of the CVAE-based dialog model described 
 See the [paper](https://arxiv.org/abs/1703.10960) for more details.
 
 # Prerequisites
- - TensorFlow 0.12.1+
+ - TensorFlow 1.3.0
+ - cuDNN 6
  - Python 2.7
  - Numpy
  - NLTK

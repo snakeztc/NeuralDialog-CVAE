@@ -1,25 +1,28 @@
 #    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
 
-import tensorflow as tf
 import os
-import time
-import sys
-from tensorflow.python.ops import array_ops
-import tensorflow.contrib.rnn.python.ops.core_rnn_cell_impl as rnn_cell
-from tensorflow.python.ops import embedding_ops
-from tensorflow.python.ops import variable_scope
-from tensorflow.contrib.seq2seq.python.ops.seq2seq import dynamic_rnn_decoder
-import decoder_fn_lib
-import numpy as np
-from tensorflow.contrib import layers
 import re
+import sys
+import time
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.contrib import layers
+from tensorflow.contrib.rnn import OutputProjectionWrapper
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import embedding_ops
+from tensorflow.python.ops import rnn_cell_impl as rnn_cell
+from tensorflow.python.ops import variable_scope
+
+import decoder_fn_lib
 import utils
-from utils import sample_gaussian
+from models.seq2seq import dynamic_rnn_decoder
 from utils import gaussian_kld
-from utils import norm_log_liklihood
+from utils import get_bi_rnn_encode
 from utils import get_bow
 from utils import get_rnn_encode
-from utils import get_bi_rnn_encode
+from utils import norm_log_liklihood
+from utils import sample_gaussian
 
 
 class BaseTFModel(object):
@@ -283,7 +286,7 @@ class KgRnnCVAE(BaseTFModel):
 
         with variable_scope.variable_scope("decoder"):
             dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
-            dec_cell = rnn_cell.OutputProjectionWrapper(dec_cell, self.vocab_size)
+            dec_cell = OutputProjectionWrapper(dec_cell, self.vocab_size)
 
             if forward:
                 loop_func = decoder_fn_lib.context_decoder_fn_inference(None, dec_init_state, embedding,
@@ -311,13 +314,15 @@ class KgRnnCVAE(BaseTFModel):
                     dec_input_embedding = dec_input_embedding * keep_mask
                     dec_input_embedding = tf.reshape(dec_input_embedding, [-1, max_out_len-1, config.embed_size])
 
-            dec_outs, _, final_context_state = dynamic_rnn_decoder(dec_cell, loop_func, inputs=dec_input_embedding, sequence_length=dec_seq_lens)
+            dec_outs, _, final_context_state = dynamic_rnn_decoder(dec_cell, loop_func,
+                                                                   inputs=dec_input_embedding,
+                                                                   sequence_length=dec_seq_lens)
             if final_context_state is not None:
                 final_context_state = final_context_state[:, 0:array_ops.shape(dec_outs)[1]]
                 mask = tf.to_int32(tf.sign(tf.reduce_max(dec_outs, axis=2)))
                 self.dec_out_words = tf.multiply(tf.reverse(final_context_state, axis=[1]), mask)
             else:
-                self.dec_out_words = tf.arg_max(dec_outs, 2)
+                self.dec_out_words = tf.argmax(dec_outs, 2)
 
         if not forward:
             with variable_scope.variable_scope("loss"):
