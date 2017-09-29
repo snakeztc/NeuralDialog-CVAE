@@ -55,18 +55,22 @@ class LongDataLoader(object):
             min_len = self.data_lens[b_ids[0]]
             assert np.max(all_lens) == max_len
             assert np.min(all_lens) == min_len
-            num_seg = (max_len-self.backward_size) // self.step_size
+            num_seg = (max_len-self.backward_size-self.step_size) // self.step_size
+            cut_start, cut_end = [], []
             if num_seg > 0:
-                cut_start = range(0, num_seg*self.step_size, step_size)
-                cut_end = range(self.backward_size, num_seg*self.step_size+self.backward_size, step_size)
+                cut_start = range(step_size, num_seg * step_size, step_size)
+                cut_end = range(backward_size+step_size,
+                                num_seg * step_size + backward_size,
+                                step_size)
                 assert cut_end[-1] < max_len
-                cut_start = [0] * (self.backward_size-2) +cut_start # since we give up on the seq training idea
-                cut_end = range(2, self.backward_size) + cut_end
-            else:
-                cut_start = [0] * (max_len-2)
-                cut_end = range(2, max_len)
 
-            new_grids = [(idx, s_id, e_id) for s_id, e_id in zip(cut_start, cut_end) if s_id < min_len-1]
+            actual_size = min(max_len, backward_size)
+            cut_start = [0] * (actual_size/step_size-2) + cut_start
+            cut_end = range(2, actual_size, step_size) + cut_end
+
+            assert len(cut_end) == len(cut_start)
+            new_grids = [(idx, s_id, e_id) for s_id, e_id in
+                         zip(cut_start, cut_end) if s_id < min_len - 1]
             if intra_shuffle and shuffle:
                np.random.shuffle(new_grids)
             self.grid_indexes.extend(new_grids)
