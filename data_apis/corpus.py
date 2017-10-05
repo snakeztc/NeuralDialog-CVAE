@@ -1,168 +1,115 @@
 #    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
+'''
+# The top directory is a python dictionary
+type(data) = dict
+data.keys() = ['train', 'valid', 'test']
+
+# Train/valid/test is a list, each element is one corpus
+train = data['train']
+type(train) = list
+
+# Each corpus is a tuple
+corpus = train[0]
+corpus = (context, response)
+
+# the context may be the title, the top-focus sentences, or the keywords of one article
+# 1. title: [<s>, a, b, c, ..., </s>]
+# 2. top-focus sentences: [[<s>, a1, b1, c1, ..., </s>], [<s>, a2, b2, c2, ..., </s>], ...]
+# 3. keywords: [c, a, b]
+# the response is one comment: [<s>, a, b, c, ..., </s>]
+'''
+
 import pickle as pkl
 from collections import Counter
 import numpy as np
-import nltk
 
-
-class SWDADialogCorpus(object):
-    dialog_act_id = 0
-    sentiment_id = 1
-    liwc_id = 2
-
-    def __init__(self, corpus_path, max_vocab_cnt=10000, word2vec=None, word2vec_dim=None):
+class Corpus(object):
+    def __init__(self, corpus_path, max_vocab_cnt=30000, word2vec=None, word2vec_dim=None):
         """
-        :param corpus_path: the folder that contains the SWDA dialog corpus
+        :param corpus_path: the folder that contains the corpus pickle file
         """
         self._path = corpus_path
         self.word_vec_path = word2vec
         self.word2vec_dim = word2vec_dim
         self.word2vec = None
-        self.dialog_id = 0
-        self.meta_id = 1
-        self.utt_id = 2
-        self.sil_utt = ["<s>", "<sil>", "</s>"]
         data = pkl.load(open(self._path, "rb"))
-        self.train_corpus = self.process(data["train"])
-        self.valid_corpus = self.process(data["valid"])
-        self.test_corpus = self.process(data["test"])
+        self.train_corpus = data["train"] # [(context, response), ...]
+        self.valid_corpus = data["valid"]
+        self.test_corpus = data["test"]
         self.build_vocab(max_vocab_cnt)
         self.load_word2vec()
         print("Done loading corpus")
 
-    def process(self, data):
-        """new_dialog: [(a, 1/0), (a,1/0)], new_meta: (a, b, topic), new_utt: [[a,b,c)"""
-        """ 1 is own utt and 0 is other's utt"""
-        new_dialog = []
-        new_meta = []
-        new_utts = []
-        bod_utt = ["<s>", "<d>", "</s>"]
-        all_lenes = []
-
-        for l in data:
-            lower_utts = [(caller, ["<s>"] + nltk.WordPunctTokenizer().tokenize(utt.lower()) + ["</s>"], feat)
-                          for caller, utt, feat in l["utts"]]
-            all_lenes.extend([len(u) for c, u, f in lower_utts])
-
-            a_age = float(l["A"]["age"])/100.0
-            b_age = float(l["B"]["age"])/100.0
-            a_edu = float(l["A"]["education"])/3.0
-            b_edu = float(l["B"]["education"])/3.0
-            vec_a_meta = [a_age, a_edu] + ([0, 1] if l["A"]["sex"] == "FEMALE" else [1, 0])
-            vec_b_meta = [b_age, b_edu] + ([0, 1] if l["B"]["sex"] == "FEMALE" else [1, 0])
-
-            # for joint model we mode two side of speakers together. if A then its 0 other wise 1
-            meta = (vec_a_meta, vec_b_meta, l["topic"])
-            dialog = [(bod_utt, 0, None)] + [(utt, int(caller=="B"), feat) for caller, utt, feat in lower_utts]
-
-            new_utts.extend([bod_utt] + [utt for caller, utt, feat in lower_utts])
-            new_dialog.append(dialog)
-            new_meta.append(meta)
-
-        print("Max utt len %d, mean utt len %.2f" % (np.max(all_lenes), float(np.mean(all_lenes))))
-        return new_dialog, new_meta, new_utts
-
     def build_vocab(self, max_vocab_cnt):
-        all_words = []
-        for tokens in self.train_corpus[self.utt_id]:
-            all_words.extend(tokens)
-        vocab_count = Counter(all_words).most_common()
-        raw_vocab_size = len(vocab_count)
-        discard_wc = np.sum([c for t, c, in vocab_count[max_vocab_cnt:]])
-        vocab_count = vocab_count[0:max_vocab_cnt]
+        all_context_words = []
+        all_response_words = []
+        for context, response in self.train_corpus:
+            if type(context[0]) is list:
+                new_context = reduce(lambda x, y: x + y, context)
+            else:
+                new_context = context
+            all_context_words.extend(new_context)
+            all_response_words.extend(response)
 
-        # create vocabulary list sorted by count
-        print("Load corpus with train size %d, valid size %d, "
-              "test size %d raw vocab size %d vocab size %d at cut_off %d OOV rate %f"
-              % (len(self.train_corpus), len(self.valid_corpus), len(self.test_corpus),
-                 raw_vocab_size, len(vocab_count), vocab_count[-1][1], float(discard_wc) / len(all_words)))
+        def _cutoff_vocab(all_word):
+            vocab_count = Counter(all_word).most_common() # word frequence
+            raw_vocab_size = len(vocab_count)
+            discard_wc = np.sum([c for t, c, in vocab_count[max_vocab_cnt:]])
+            vocab_count = vocab_count[0:max_vocab_cnt]
+            vocab = ["<pad>", "<unk>"] + [t for t, cnt in vocab_count]
+            rev_vocab = {t:idx for idx, t in enumerate(vocab)}
 
-        self.vocab = ["<pad>", "<unk>"] + [t for t, cnt in vocab_count]
-        self.rev_vocab = {t: idx for idx, t in enumerate(self.vocab)}
-        self.unk_id = self.rev_vocab["<unk>"]
-        print("<d> index %d" % self.rev_vocab["<d>"])
-        print("<sil> index %d" % self.rev_vocab.get("<sil>", -1))
+            print("raw vocab size %d vocab size %d at cut_off %d OOV rate %f"
+                  % (raw_vocab_size, len(vocab_count), vocab_count[-1][1], float(discard_wc) / len(all_word)))
 
-        # create topic vocab
-        all_topics = []
-        for a, b, topic in self.train_corpus[self.meta_id]:
-            all_topics.append(topic)
-        self.topic_vocab = [t for t, cnt in Counter(all_topics).most_common()]
-        self.rev_topic_vocab = {t: idx for idx, t in enumerate(self.topic_vocab)}
-        print("%d topics in train data" % len(self.topic_vocab))
+            return vocab, rev_vocab
 
-        # get dialog act labels
-        all_dialog_acts = []
-        for dialog in self.train_corpus[self.dialog_id]:
-            all_dialog_acts.extend([feat[self.dialog_act_id] for caller, utt, feat in dialog if feat is not None])
-        self.dialog_act_vocab = [t for t, cnt in Counter(all_dialog_acts).most_common()]
-        self.rev_dialog_act_vocab = {t: idx for idx, t in enumerate(self.dialog_act_vocab)}
-        print(self.dialog_act_vocab)
-        print("%d dialog acts in train data" % len(self.dialog_act_vocab))
+        print("Loading context vocabulary")
+        self.context_vocab, self.rev_context_vocab = _cutoff_vocab(all_context_words)
+
+        print("Loading response vocabulary")
+        self.response_vocab, self.rev_response_vocab = _cutoff_vocab(all_response_words)
 
     def load_word2vec(self):
-        if self.word_vec_path is None:
-            return
-        with open(self.word_vec_path, "rb") as f:
-            lines = f.readlines()
-        raw_word2vec = {}
-        for l in lines:
-            w, vec = l.split(" ", 1)
-            raw_word2vec[w] = vec
-        # clean up lines for memory efficiency
-        self.word2vec = []
-        oov_cnt = 0
-        for v in self.vocab:
-            str_vec = raw_word2vec.get(v, None)
-            if str_vec is None:
-                oov_cnt += 1
-                vec = np.random.randn(self.word2vec_dim) * 0.1
+        pass
+        # if self.word_vec_path is none:
+        #     return
+        # with open(self.word_vec_path, "rb") as f:
+        #     lines = f.readlines()
+        # raw_word2vec = {}
+        # for l in lines:
+        #     w, vec = l.split(" ", 1)
+        #     raw_word2vec[w] = vec
+        # # clean up lines for memory efficiency
+        # self.word2vec = []
+        # oov_cnt = 0
+        # for v in self.vocab:
+        #     str_vec = raw_word2vec.get(v, none)
+        #     if str_vec is none:
+        #         oov_cnt += 1
+        #         vec = np.random.randn(self.word2vec_dim) * 0.1
+        #     else:
+        #         vec = np.fromstring(str_vec, sep=" ")
+        #     self.word2vec.append(vec)
+        # print("word2vec cannot cover %f vocab" % (float(oov_cnt)/len(self.vocab)))
+
+    def get_corpus(self):
+        def _to_id_sentence(sen, rev_vocab):
+            unk_id = rev_vocab["<unk>"]
+            assert(type(sen) is list)
+            if type(sen[0]) is list:
+                return [_to_id_sentence(sub_sen, rev_vocab) for sub_sen in sen]
             else:
-                vec = np.fromstring(str_vec, sep=" ")
-            self.word2vec.append(vec)
-        print("word2vec cannot cover %f vocab" % (float(oov_cnt)/len(self.vocab)))
+                return [rev_vocab.get(t, unk_id) for t in sen]
 
-    def get_utt_corpus(self):
         def _to_id_corpus(data):
             results = []
-            for line in data:
-                results.append([self.rev_vocab.get(t, self.unk_id) for t in line])
+            for context, response in data:
+                cxt_ids = _to_id_sentence(context, self.rev_context_vocab)
+                res_ids = _to_id_sentence(response, self.rev_response_vocab)
+                results.append((cxt_ids, res_ids))
             return results
-        # convert the corpus into ID
-        id_train = _to_id_corpus(self.train_corpus[self.utt_id])
-        id_valid = _to_id_corpus(self.valid_corpus[self.utt_id])
-        id_test = _to_id_corpus(self.test_corpus[self.utt_id])
+        id_train = _to_id_corpus(self.train_corpus)
+        id_valid = _to_id_corpus(self.valid_corpus)
+        id_test = _to_id_corpus(self.test_corpus)
         return {'train': id_train, 'valid': id_valid, 'test': id_test}
-
-    def get_dialog_corpus(self):
-        def _to_id_corpus(data):
-            results = []
-            for dialog in data:
-                temp = []
-                # convert utterance and feature into numeric numbers
-                for utt, floor, feat in dialog:
-                    if feat is not None:
-                        id_feat = list(feat)
-                        id_feat[self.dialog_act_id] = self.rev_dialog_act_vocab[feat[self.dialog_act_id]]
-                    else:
-                        id_feat = None
-                    temp.append(([self.rev_vocab.get(t, self.unk_id) for t in utt], floor, id_feat))
-                results.append(temp)
-            return results
-        id_train = _to_id_corpus(self.train_corpus[self.dialog_id])
-        id_valid = _to_id_corpus(self.valid_corpus[self.dialog_id])
-        id_test = _to_id_corpus(self.test_corpus[self.dialog_id])
-        return {'train': id_train, 'valid': id_valid, 'test': id_test}
-
-    def get_meta_corpus(self):
-        def _to_id_corpus(data):
-            results = []
-            for m_meta, o_meta, topic in data:
-                results.append((m_meta, o_meta, self.rev_topic_vocab[topic]))
-            return results
-
-        id_train = _to_id_corpus(self.train_corpus[self.meta_id])
-        id_valid = _to_id_corpus(self.valid_corpus[self.meta_id])
-        id_test = _to_id_corpus(self.test_corpus[self.meta_id])
-        return {'train': id_train, 'valid': id_valid, 'test': id_test}
-

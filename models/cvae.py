@@ -525,7 +525,7 @@ class KgRnnCVAE(BaseTFModel):
         avg_f1 = 2*(avg_prec_bleu*avg_recall_bleu) / (avg_prec_bleu+avg_recall_bleu+10e-12)
         report = "Avg recall BLEU %f, avg precision BLEU %f and F1 %f (only 1 reference response. Not final result)" \
                  % (avg_recall_bleu, avg_prec_bleu, avg_f1)
-        print report
+        print(report)
         dest.write(report + "\n")
         print("Done testing")
 
