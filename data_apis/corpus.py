@@ -13,9 +13,9 @@ corpus = train[0]
 corpus = (context, response)
 
 # the context may be the title, the top-focus sentences, or the keywords of one article
-# 1. title: [<s>, a, b, c, ..., </s>]
+# 1. title: [[<s>, a, b, c, ..., </s>]]
 # 2. top-focus sentences: [[<s>, a1, b1, c1, ..., </s>], [<s>, a2, b2, c2, ..., </s>], ...]
-# 3. keywords: [c, a, b]
+# 3. keywords: [[c, a, b]]
 # the response is one comment: [<s>, a, b, c, ..., </s>]
 '''
 
@@ -44,10 +44,7 @@ class Corpus(object):
         all_context_words = []
         all_response_words = []
         for context, response in self.train_corpus:
-            if type(context[0]) is list:
-                new_context = reduce(lambda x, y: x + y, context)
-            else:
-                new_context = context
+            new_context = reduce(lambda x, y: x + y, context)
             all_context_words.extend(new_context)
             all_response_words.extend(response)
 
@@ -96,11 +93,10 @@ class Corpus(object):
     def get_corpus(self):
         def _to_id_sentence(sen, rev_vocab):
             unk_id = rev_vocab["<unk>"]
-            assert(type(sen) is list)
-            if type(sen[0]) is list:
+            if type(sen) is list:
                 return [_to_id_sentence(sub_sen, rev_vocab) for sub_sen in sen]
             else:
-                return [rev_vocab.get(t, unk_id) for t in sen]
+                return rev_vocab.get(sen, unk_id)
 
         def _to_id_corpus(data):
             results = []
@@ -109,6 +105,7 @@ class Corpus(object):
                 res_ids = _to_id_sentence(response, self.rev_response_vocab)
                 results.append((cxt_ids, res_ids))
             return results
+
         id_train = _to_id_corpus(self.train_corpus)
         id_valid = _to_id_corpus(self.valid_corpus)
         id_test = _to_id_corpus(self.test_corpus)
