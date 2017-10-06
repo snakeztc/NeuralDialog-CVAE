@@ -10,7 +10,7 @@ from beeprint import pp
 from config_utils import KgCVAEConfig as Config
 from data_apis.corpus import Corpus
 from data_apis.data_utils import DataLoader
-from models.cvae import KgRnnCVAE
+from models.cvae import RnnCVAE
 
 # constants
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
@@ -63,16 +63,17 @@ def main():
         initializer = tf.random_uniform_initializer(-1.0 * config.init_w, config.init_w)
         scope = "model"
         with tf.variable_scope(scope, reuse=None, initializer=initializer):
-            model = KgRnnCVAE(sess, config, api, log_dir=None if FLAGS.forward_only else log_dir, forward=False, scope=scope)
+            model = RnnCVAE(sess, config, api, log_dir=None if FLAGS.forward_only else log_dir, forward=False, scope=scope)
         with tf.variable_scope(scope, reuse=True, initializer=initializer):
-            valid_model = KgRnnCVAE(sess, valid_config, api, log_dir=None, forward=False, scope=scope)
+            valid_model = RnnCVAE(sess, valid_config, api, log_dir=None, forward=False, scope=scope)
         with tf.variable_scope(scope, reuse=True, initializer=initializer):
-            test_model = KgRnnCVAE(sess, test_config, api, log_dir=None, forward=True, scope=scope)
+            test_model = RnnCVAE(sess, test_config, api, log_dir=None, forward=True, scope=scope)
 
         print("Created computation graphs")
         if api.word2vec is not None and not FLAGS.forward_only:
             print("Loaded word2vec")
-            sess.run(model.embedding.assign(np.array(api.word2vec)))
+            sess.run(model.context_embedding.assign(np.array(api.word2vec)))
+            sess.run(model.response_embedding.assign(np.array(api.word2vec)))
 
         # write config to a file for logging
         if not FLAGS.forward_only:
@@ -155,16 +156,3 @@ if __name__ == "__main__":
             print("Set test_path before forward only")
             exit(1)
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-

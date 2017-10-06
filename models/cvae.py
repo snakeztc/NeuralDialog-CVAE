@@ -119,38 +119,33 @@ class BaseTFModel(object):
         self.train_summary_writer = tf.summary.FileWriter(train_log_dir, sess.graph)
 
 
-class KgRnnCVAE(BaseTFModel):
+class RnnCVAE(BaseTFModel):
 
     def __init__(self, sess, config, api, log_dir, forward, scope=None):
-        self.vocab = api.vocab
-        self.rev_vocab = api.rev_vocab
-        self.vocab_size = len(self.vocab)
-        self.topic_vocab = api.topic_vocab
-        self.topic_vocab_size = len(self.topic_vocab)
-        self.da_vocab = api.dialog_act_vocab
-        self.da_vocab_size = len(self.da_vocab)
+        self.context_vocab = api.context_vocab
+        self.rev_context_vocab = api.rev_context_vocab
+        self.response_vocab = api.response_vocab
+        self.rev_response_vocab = api.rev_response_vocab
+        self.context_vocab_size = len(self.context_vocab)
+        self.response_vocab_size = len(self.response_vocab)
+
         self.sess = sess
         self.scope = scope
         self.max_utt_len = config.max_utt_len
-        self.go_id = self.rev_vocab["<s>"]
-        self.eos_id = self.rev_vocab["</s>"]
+        self.go_id = self.rev_response_vocab["<s>"]
+        self.eos_id = self.rev_response_vocab["</s>"]
         self.context_cell_size = config.cxt_cell_size
         self.sent_cell_size = config.sent_cell_size
         self.dec_cell_size = config.dec_cell_size
 
         with tf.name_scope("io"):
             # all dialog context and known attributes
-            self.input_contexts = tf.placeholder(dtype=tf.int32, shape=(None, None, self.max_utt_len), name="dialog_context")
-            self.floors = tf.placeholder(dtype=tf.int32, shape=(None, None), name="floor")
+            self.input_contexts = tf.placeholder(dtype=tf.int32, shape=(None, None, self.max_utt_len), name="context")
             self.context_lens = tf.placeholder(dtype=tf.int32, shape=(None,), name="context_lens")
-            self.topics = tf.placeholder(dtype=tf.int32, shape=(None,), name="topics")
-            self.my_profile = tf.placeholder(dtype=tf.float32, shape=(None, 4), name="my_profile")
-            self.ot_profile = tf.placeholder(dtype=tf.float32, shape=(None, 4), name="ot_profile")
 
             # target response given the dialog context
             self.output_tokens = tf.placeholder(dtype=tf.int32, shape=(None, None), name="output_token")
             self.output_lens = tf.placeholder(dtype=tf.int32, shape=(None,), name="output_lens")
-            self.output_das = tf.placeholder(dtype=tf.int32, shape=(None,), name="output_dialog_acts")
 
             # optimization related variables
             self.learning_rate = tf.Variable(float(config.init_lr), trainable=False, name="learning_rate")
@@ -158,28 +153,26 @@ class KgRnnCVAE(BaseTFModel):
             self.global_t = tf.placeholder(dtype=tf.int32, name="global_t")
             self.use_prior = tf.placeholder(dtype=tf.bool, name="use_prior")
 
-        max_dialog_len = array_ops.shape(self.input_contexts)[1]
+        max_context_len = array_ops.shape(self.input_contexts)[1]
         max_out_len = array_ops.shape(self.output_tokens)[1]
         batch_size = array_ops.shape(self.input_contexts)[0]
 
-        with variable_scope.variable_scope("topicEmbedding"):
-            t_embedding = tf.get_variable("embedding", [self.topic_vocab_size, config.topic_embed_size], dtype=tf.float32)
-            topic_embedding = embedding_ops.embedding_lookup(t_embedding, self.topics)
-
-        if config.use_hcf:
-            with variable_scope.variable_scope("dialogActEmbedding"):
-                d_embedding = tf.get_variable("embedding", [self.da_vocab_size, config.da_embed_size], dtype=tf.float32)
-                da_embedding = embedding_ops.embedding_lookup(d_embedding, self.output_das)
-
         with variable_scope.variable_scope("wordEmbedding"):
-            self.embedding = tf.get_variable("embedding", [self.vocab_size, config.embed_size], dtype=tf.float32)
-            embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.vocab_size)], dtype=tf.float32,
-                                         shape=[self.vocab_size, 1])
-            embedding = self.embedding * embedding_mask
+            self.context_embedding = tf.get_variable("context_embedding", [self.context_vocab_size, config.embed_size], dtype=tf.float32)
+            context_embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.context_vocab_size)], dtype=tf.float32,
+                                         shape=[self.context_vocab_size, 1])
+            context_embedding = self.context_embedding * context_embedding_mask
 
-            input_embedding = embedding_ops.embedding_lookup(embedding, tf.reshape(self.input_contexts, [-1]))
+            self.response_embedding = tf.get_variable("response_embedding", [self.response_vocab_size, config.embed_size],
+                                                     dtype=tf.float32)
+            response_embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.response_vocab_size)],
+                                                 dtype=tf.float32,
+                                                 shape=[self.response_vocab_size, 1])
+            response_embedding = self.response_embedding * response_embedding_mask
+
+            input_embedding = embedding_ops.embedding_lookup(context_embedding, tf.reshape(self.input_contexts, [-1]))
             input_embedding = tf.reshape(input_embedding, [-1, self.max_utt_len, config.embed_size])
-            output_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
+            output_embedding = embedding_ops.embedding_lookup(response_embedding, self.output_tokens)
 
             if config.sent_type == "bow":
                 input_embedding, sent_size = get_bow(input_embedding)
@@ -199,46 +192,30 @@ class KgRnnCVAE(BaseTFModel):
                 raise ValueError("Unknown sent_type. Must be one of [bow, rnn, bi_rnn]")
 
             # reshape input into dialogs
-            input_embedding = tf.reshape(input_embedding, [-1, max_dialog_len, sent_size])
+            input_embedding = tf.reshape(input_embedding, [-1, max_context_len, sent_size])
             if config.keep_prob < 1.0:
                 input_embedding = tf.nn.dropout(input_embedding, config.keep_prob)
-
-            # convert floors into 1 hot
-            floor_one_hot = tf.one_hot(tf.reshape(self.floors, [-1]), depth=2, dtype=tf.float32)
-            floor_one_hot = tf.reshape(floor_one_hot, [-1, max_dialog_len, 2])
-
-            joint_embedding = tf.concat([input_embedding, floor_one_hot], 2, "joint_embedding")
 
         with variable_scope.variable_scope("contextRNN"):
             enc_cell = self.get_rnncell(config.cell_type, self.context_cell_size, keep_prob=1.0, num_layer=config.num_layer)
             # and enc_last_state will be same as the true last state
             _, enc_last_state = tf.nn.dynamic_rnn(
                 enc_cell,
-                joint_embedding,
+                input_embedding,
                 dtype=tf.float32,
                 sequence_length=self.context_lens)
 
             if config.num_layer > 1:
                 enc_last_state = tf.concat(enc_last_state, 1)
 
-        # combine with other attributes
-        if config.use_hcf:
-            attribute_embedding = da_embedding
-            attribute_fc1 = layers.fully_connected(attribute_embedding, 30, activation_fn=tf.tanh, scope="attribute_fc1")
-
-        cond_list = [topic_embedding, self.my_profile, self.ot_profile, enc_last_state]
-        cond_embedding = tf.concat(cond_list, 1)
+        cond_embedding = enc_last_state
 
         with variable_scope.variable_scope("recognitionNetwork"):
-            if config.use_hcf:
-                recog_input = tf.concat([cond_embedding, output_embedding, attribute_fc1], 1)
-            else:
-                recog_input = tf.concat([cond_embedding, output_embedding], 1)
+            recog_input = tf.concat([cond_embedding, output_embedding], 1)
             self.recog_mulogvar = recog_mulogvar = layers.fully_connected(recog_input, config.latent_size * 2, activation_fn=None, scope="muvar")
             recog_mu, recog_logvar = tf.split(recog_mulogvar, 2, axis=1)
 
         with variable_scope.variable_scope("priorNetwork"):
-            # P(XYZ)=P(Z|X)P(X)P(Y|X,Z)
             prior_fc1 = layers.fully_connected(cond_embedding, np.maximum(config.latent_size * 2, 100),
                                                activation_fn=tf.tanh, scope="fc1")
             prior_mulogvar = layers.fully_connected(prior_fc1, config.latent_size * 2, activation_fn=None,
@@ -257,24 +234,9 @@ class KgRnnCVAE(BaseTFModel):
             bow_fc1 = layers.fully_connected(gen_inputs, 400, activation_fn=tf.tanh, scope="bow_fc1")
             if config.keep_prob < 1.0:
                 bow_fc1 = tf.nn.dropout(bow_fc1, config.keep_prob)
-            self.bow_logits = layers.fully_connected(bow_fc1, self.vocab_size, activation_fn=None, scope="bow_project")
+            self.bow_logits = layers.fully_connected(bow_fc1, self.response_vocab_size, activation_fn=None, scope="bow_project")
 
-            # Y loss
-            if config.use_hcf:
-                meta_fc1 = layers.fully_connected(gen_inputs, 400, activation_fn=tf.tanh, scope="meta_fc1")
-                if config.keep_prob <1.0:
-                    meta_fc1 = tf.nn.dropout(meta_fc1, config.keep_prob)
-                self.da_logits = layers.fully_connected(meta_fc1, self.da_vocab_size, scope="da_project")
-                da_prob = tf.nn.softmax(self.da_logits)
-                pred_attribute_embedding = tf.matmul(da_prob, d_embedding)
-                if forward:
-                    selected_attribute_embedding = pred_attribute_embedding
-                else:
-                    selected_attribute_embedding = attribute_embedding
-                dec_inputs = tf.concat([gen_inputs, selected_attribute_embedding], 1)
-            else:
-                self.da_logits = tf.zeros((batch_size, self.da_vocab_size))
-                dec_inputs = gen_inputs
+            dec_inputs = gen_inputs
 
             # Decoder
             if config.num_layer > 1:
@@ -286,20 +248,20 @@ class KgRnnCVAE(BaseTFModel):
 
         with variable_scope.variable_scope("decoder"):
             dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
-            dec_cell = OutputProjectionWrapper(dec_cell, self.vocab_size)
+            dec_cell = OutputProjectionWrapper(dec_cell, self.response_vocab_size)
 
             if forward:
-                loop_func = decoder_fn_lib.context_decoder_fn_inference(None, dec_init_state, embedding,
+                loop_func = decoder_fn_lib.context_decoder_fn_inference(None, dec_init_state, response_embedding,
                                                                         start_of_sequence_id=self.go_id,
                                                                         end_of_sequence_id=self.eos_id,
                                                                         maximum_length=self.max_utt_len,
-                                                                        num_decoder_symbols=self.vocab_size,
-                                                                        context_vector=selected_attribute_embedding)
+                                                                        num_decoder_symbols=self.response_vocab_size,
+                                                                        context_vector=None)
                 dec_input_embedding = None
                 dec_seq_lens = None
             else:
-                loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, selected_attribute_embedding)
-                dec_input_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
+                loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, None)
+                dec_input_embedding = embedding_ops.embedding_lookup(response_embedding, self.output_tokens)
                 dec_input_embedding = dec_input_embedding[:, 0:-1, :]
                 dec_seq_lens = self.output_lens - 1
 
@@ -341,13 +303,6 @@ class KgRnnCVAE(BaseTFModel):
                 bow_loss = tf.reduce_sum(bow_loss, reduction_indices=1)
                 self.avg_bow_loss  = tf.reduce_mean(bow_loss)
 
-                # reconstruct the meta info about X
-                if config.use_hcf:
-                    da_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.da_logits, labels=self.output_das)
-                    self.avg_da_loss = tf.reduce_mean(da_loss)
-                else:
-                    self.avg_da_loss = 0.0
-
                 kld = gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar)
                 self.avg_kld = tf.reduce_mean(kld)
                 if log_dir is not None:
@@ -357,9 +312,8 @@ class KgRnnCVAE(BaseTFModel):
 
                 self.kl_w = kl_weights
                 self.elbo = self.avg_rc_loss + kl_weights * self.avg_kld
-                aug_elbo = self.avg_bow_loss + self.avg_da_loss + self.elbo
+                aug_elbo = self.avg_bow_loss + self.elbo
 
-                tf.summary.scalar("da_loss", self.avg_da_loss)
                 tf.summary.scalar("rc_loss", self.avg_rc_loss)
                 tf.summary.scalar("elbo", self.elbo)
                 tf.summary.scalar("kld", self.avg_kld)
@@ -376,11 +330,9 @@ class KgRnnCVAE(BaseTFModel):
         self.saver = tf.train.Saver(tf.global_variables(), write_version=tf.train.SaverDef.V2)
 
     def batch_2_feed(self, batch, global_t, use_prior, repeat=1):
-        context, context_lens, floors, topics, my_profiles, ot_profiles, outputs, output_lens, output_das = batch
-        feed_dict = {self.input_contexts: context, self.context_lens:context_lens,
-                     self.floors: floors, self.topics:topics, self.my_profile: my_profiles,
-                     self.ot_profile: ot_profiles, self.output_tokens: outputs,
-                     self.output_das: output_das, self.output_lens: output_lens,
+        context, context_lens, outputs, output_lens = batch
+        feed_dict = {self.input_contexts: context, self.context_lens: context_lens,
+                     self.output_tokens: outputs, self.output_lens: output_lens,
                      self.use_prior: use_prior}
         if repeat > 1:
             tiled_feed_dict = {}
@@ -476,16 +428,12 @@ class KgRnnCVAE(BaseTFModel):
             if batch is None or (num_batch is not None and local_t > num_batch):
                 break
             feed_dict = self.batch_2_feed(batch, None, use_prior=True, repeat=repeat)
-            word_outs, da_logits = sess.run([self.dec_out_words, self.da_logits], feed_dict)
+            word_outs, = sess.run(self.dec_out_words, feed_dict)
             sample_words = np.split(word_outs, repeat, axis=0)
-            sample_das = np.split(da_logits, repeat, axis=0)
 
-            true_floor = feed_dict[self.floors]
             true_srcs = feed_dict[self.input_contexts]
             true_src_lens = feed_dict[self.context_lens]
             true_outs = feed_dict[self.output_tokens]
-            true_topics = feed_dict[self.topics]
-            true_das = feed_dict[self.output_das]
             local_t += 1
 
             if dest != sys.stdout:
@@ -494,24 +442,21 @@ class KgRnnCVAE(BaseTFModel):
 
             for b_id in range(test_feed.batch_size):
                 # print the dialog context
-                dest.write("Batch %d index %d of topic %s\n" % (local_t, b_id, self.topic_vocab[true_topics[b_id]]))
-                start = np.maximum(0, true_src_lens[b_id]-5)
-                for t_id in range(start, true_srcs.shape[1], 1):
-                    src_str = " ".join([self.vocab[e] for e in true_srcs[b_id, t_id].tolist() if e != 0])
-                    dest.write("Src %d-%d: %s\n" % (t_id, true_floor[b_id, t_id], src_str))
+                dest.write("Batch %d index %d\n" % (local_t, b_id))
+                for t_id in range(0, true_src_lens[b_id], 1):
+                    src_str = " ".join([self.context_vocab[e] for e in true_srcs[b_id, t_id].tolist() if e != 0])
+                    dest.write("Src %d: %s\n" % (t_id, src_str))
                 # print the true outputs
-                true_tokens = [self.vocab[e] for e in true_outs[b_id].tolist() if e not in [0, self.eos_id, self.go_id]]
+                true_tokens = [self.response_vocab[e] for e in true_outs[b_id].tolist() if e not in [0, self.eos_id, self.go_id]]
                 true_str = " ".join(true_tokens).replace(" ' ", "'")
-                da_str = self.da_vocab[true_das[b_id]]
                 # print the predicted outputs
-                dest.write("Target (%s) >> %s\n" % (da_str, true_str))
+                dest.write("Target >> %s\n" % true_str)
                 local_tokens = []
                 for r_id in range(repeat):
                     pred_outs = sample_words[r_id]
-                    pred_da = np.argmax(sample_das[r_id], axis=1)[0]
-                    pred_tokens = [self.vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
+                    pred_tokens = [self.response_vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
                     pred_str = " ".join(pred_tokens).replace(" ' ", "'")
-                    dest.write("Sample %d (%s) >> %s\n" % (r_id, self.da_vocab[pred_da], pred_str))
+                    dest.write("Sample %d >> %s\n" % (r_id, pred_str))
                     local_tokens.append(pred_tokens)
 
                 max_bleu, avg_bleu = utils.get_bleu_stats(true_tokens, local_tokens)
