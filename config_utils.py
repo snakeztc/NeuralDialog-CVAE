@@ -1,9 +1,8 @@
 #    Copyright (C) 2017 Tiancheng Zhao, Carnegie Mellon University
 
 
-class KgCVAEConfig(object):
+class CVAEConfig(object):
     description= None
-    use_hcf = True  # use dialog act in training (if turn off kgCVAE -> CVAE)
     update_limit = 3000  # the number of mini-batch before evaluating the model
 
     # how to encode utterance.
@@ -20,13 +19,9 @@ class KgCVAEConfig(object):
     # Network general
     cell_type = "gru"  # gru or lstm
     embed_size = 200  # word embedding size
-    topic_embed_size = 30  # topic embedding size
-    da_embed_size = 30  # dialog act embedding size
     cxt_cell_size = 600  # context encoder hidden size
     sent_cell_size = 300  # utterance encoder hidden size
     dec_cell_size = 400  # response decoder hidden size
-    backward_size = 10  # how many utterance kept in the context window
-    step_size = 1  # internal usage
     max_utt_len = 40  # max number of words in an utterance
     num_layer = 1  # number of context RNN layers
 
@@ -44,10 +39,3 @@ class KgCVAEConfig(object):
     early_stop = True
     max_epoch = 60  # max number of epoch of training
     grad_noise = 0.0  # inject gradient noise?
-
-
-
-
-
-
-

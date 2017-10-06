@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 from beeprint import pp
 
-from config_utils import KgCVAEConfig as Config
+from config_utils import CVAEConfig as Config
 from data_apis.corpus import Corpus
 from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
