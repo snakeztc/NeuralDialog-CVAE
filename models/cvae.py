@@ -428,7 +428,7 @@ class RnnCVAE(BaseTFModel):
             if batch is None or (num_batch is not None and local_t > num_batch):
                 break
             feed_dict = self.batch_2_feed(batch, None, use_prior=True, repeat=repeat)
-            word_outs, = sess.run(self.dec_out_words, feed_dict)
+            word_outs, = sess.run([self.dec_out_words], feed_dict)
             sample_words = np.split(word_outs, repeat, axis=0)
 
             true_srcs = feed_dict[self.input_contexts]

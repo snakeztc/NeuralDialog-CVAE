@@ -14,13 +14,13 @@ from models.cvae import RnnCVAE
 
 # constants
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
-tf.app.flags.DEFINE_string("data_dir", "data/full_swda_clean_42da_sentiment_dialog_corpus.p", "Raw data directory.")
+tf.app.flags.DEFINE_string("data_dir", "data/dongqiudi.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
 tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
-tf.app.flags.DEFINE_string("test_path", "run1500783422", "the dir to load checkpoint for forward only")
+tf.app.flags.DEFINE_string("test_path", None, "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
 
 

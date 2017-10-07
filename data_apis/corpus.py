@@ -19,7 +19,7 @@ corpus = (context, response)
 # the response is one comment: [<s>, a, b, c, ..., </s>]
 '''
 
-import pickle as pkl
+import cPickle as pkl
 from collections import Counter
 import numpy as np
 
