@@ -30,7 +30,7 @@ class CVAEConfig(object):
     grad_clip = 5.0  # gradient abs max cut
     init_w = 0.08  # uniform random from [-init_w, init_w]
     batch_size = 64  # mini-batch size
-    init_lr = 0.01  # initial learning rate
+    init_lr = 0.001  # initial learning rate
     lr_hold = 1  # only used by SGD
     lr_decay = 0.6  # only used by SGD
     keep_prob = 1.0  # drop out rate
