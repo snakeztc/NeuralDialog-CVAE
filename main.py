@@ -32,7 +32,7 @@ def main():
     valid_config = Config()
     valid_config.keep_prob = 1.0
     valid_config.dec_keep_prob = 1.0
-    valid_config.batch_size = 60
+    valid_config.batch_size = 64
 
     # configuration for testing
     test_config = Config()

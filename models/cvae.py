@@ -388,7 +388,7 @@ class RnnCVAE(BaseTFModel):
         epoch_time = time.time() - start_time
         avg_losses = self.print_loss("Epoch Done", loss_names,
                                      [elbo_losses, bow_losses, rc_losses, rc_ppls, kl_losses],
-                                     "step time %.4f" % (epoch_time / train_feed.num_batch))
+                                     "step time %.4f" % (epoch_time / (local_t + 1)))
 
         return global_t, avg_losses[0]
 
