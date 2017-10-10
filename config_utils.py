@@ -9,7 +9,7 @@ class CVAEConfig(object):
     # bow: add word embedding together
     # rnn: RNN utterance encoder
     # bi_rnn: bi_directional RNN utterance encoder
-    sent_type = "bi_rnn"
+    sent_type = "bow"
 
     # latent variable (gaussian variable)
     latent_size = 256  # the dimension of latent variable

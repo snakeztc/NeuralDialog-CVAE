@@ -13,6 +13,7 @@ from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
 
 # constants
+tf.app.flags.DEFINE_string("model_name", "keywords2comment", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
 tf.app.flags.DEFINE_string("data_dir", "data/dongqiudi.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
@@ -54,9 +55,9 @@ def main():
     test_feed = DataLoader("Test", test_dataset, config)
 
     if FLAGS.forward_only or FLAGS.resume:
-        log_dir = os.path.join(FLAGS.work_dir, FLAGS.test_path)
+        log_dir = os.path.join(FLAGS.work_dir, FLAGS.model_name, FLAGS.test_path)
     else:
-        log_dir = os.path.join(FLAGS.work_dir, "run"+str(int(time.time())))
+        log_dir = os.path.join(FLAGS.work_dir, FLAGS.model_name, "run" + str(int(time.time())))
 
     # begin training
     with tf.Session() as sess:

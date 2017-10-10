@@ -174,20 +174,16 @@ class RnnCVAE(BaseTFModel):
             input_embedding = tf.reshape(input_embedding, [-1, self.max_utt_len, config.embed_size])
             output_embedding = embedding_ops.embedding_lookup(response_embedding, self.output_tokens)
 
+            # context nn
             if config.sent_type == "bow":
                 input_embedding, sent_size = get_bow(input_embedding)
-                output_embedding, _ = get_bow(output_embedding)
-
             elif config.sent_type == "rnn":
                 sent_cell = self.get_rnncell("gru", self.sent_cell_size, config.keep_prob, 1)
                 input_embedding, sent_size = get_rnn_encode(input_embedding, sent_cell, scope="sent_rnn")
-                output_embedding, _ = get_rnn_encode(output_embedding, sent_cell, self.output_lens,
-                                                     scope="sent_rnn", reuse=True)
             elif config.sent_type == "bi_rnn":
                 fwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
                 bwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
                 input_embedding, sent_size = get_bi_rnn_encode(input_embedding, fwd_sent_cell, bwd_sent_cell, scope="sent_bi_rnn")
-                output_embedding, _ = get_bi_rnn_encode(output_embedding, fwd_sent_cell, bwd_sent_cell, self.output_lens, scope="sent_bi_rnn", reuse=True)
             else:
                 raise ValueError("Unknown sent_type. Must be one of [bow, rnn, bi_rnn]")
 
@@ -195,6 +191,12 @@ class RnnCVAE(BaseTFModel):
             input_embedding = tf.reshape(input_embedding, [-1, max_context_len, sent_size])
             if config.keep_prob < 1.0:
                 input_embedding = tf.nn.dropout(input_embedding, config.keep_prob)
+
+            # response nn
+            fwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
+            bwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
+            output_embedding, _ = get_bi_rnn_encode(output_embedding, fwd_sent_cell, bwd_sent_cell, self.output_lens,
+                                                    scope="sent_bi_rnn", reuse=True)
 
         with variable_scope.variable_scope("contextRNN"):
             enc_cell = self.get_rnncell(config.cell_type, self.context_cell_size, keep_prob=1.0, num_layer=config.num_layer)
