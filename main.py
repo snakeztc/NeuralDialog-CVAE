@@ -15,7 +15,7 @@ from models.cvae import RnnCVAE
 # constants
 tf.app.flags.DEFINE_string("model_name", "keywords2comment", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
-tf.app.flags.DEFINE_string("data_dir", "data/dongqiudi.pkl", "Raw data directory.")
+tf.app.flags.DEFINE_string("data_dir", "data/DQD_kw2c_dataset.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
