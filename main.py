@@ -44,7 +44,8 @@ def main():
     pp(config)
 
     # get data set
-    api = Corpus(FLAGS.data_dir, word2vec=FLAGS.word2vec_path, word2vec_dim=config.embed_size)
+    api = Corpus(FLAGS.data_dir, max_vocab_cnt=config.vocab_size, word2vec=FLAGS.word2vec_path,
+                 word2vec_dim=config.embed_size)
     corpus = api.get_corpus()
 
     train_dataset, valid_dataset, test_dataset = corpus.get("train"), corpus.get("valid"), corpus.get("test")
