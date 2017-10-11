@@ -49,7 +49,7 @@ class Corpus(object):
         for context, response in dataset:
             new_context = [list(w) for w in context[0]]
             new_response = [list(w) for w in response[1:-1]]
-            new_response = response[0] + reduce(lambda x, y: x + y, new_response) + response[-1]
+            new_response = [response[0]] + reduce(lambda x, y: x + y, new_response) + [response[-1]]
             new_dataset.append((new_context, new_response))
         return new_dataset
 
