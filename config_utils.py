@@ -5,13 +5,13 @@ class CVAEConfig(object):
     description = None
     update_limit = 10000  # the number of mini-batch before evaluating the model
 
-    vocab_size = 50000  # max vocabulary size
+    vocab_size = 8000  # max vocabulary size
 
     # how to encode utterance.
     # bow: add word embedding together
     # rnn: RNN utterance encoder
     # bi_rnn: bi_directional RNN utterance encoder
-    sent_type = "bow"
+    sent_type = "rnn"
 
     # latent variable (gaussian variable)
     latent_size = 256  # the dimension of latent variable

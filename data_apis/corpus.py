@@ -33,12 +33,25 @@ class Corpus(object):
         self.word2vec_dim = word2vec_dim
         self.word2vec = None
         data = pkl.load(open(self._path, "rb"))
-        self.train_corpus = data["train"] # [(context, response), ...]
-        self.valid_corpus = data["valid"]
-        self.test_corpus = data["test"]
+        self.train_corpus = self.preprocess_for_keywords2comment(data["train"])  # [(context, response), ...]
+        self.valid_corpus = self.preprocess_for_keywords2comment(data["valid"])
+        self.test_corpus = self.preprocess_for_keywords2comment(data["test"])
         self.build_vocab(max_vocab_cnt)
         self.load_word2vec()
         print("Done loading corpus")
+
+    def preprocess_for_keywords2comment(self, dataset):
+        """
+        :param dataset: [([[keyword1, keyword2, ...]], [<s>, w1, ..., </s>])]
+        :return: [([[c1, c2, ...], [c1, ...], ...], [<s>, c1, ..., </s>])]
+        """
+        new_dataset = []
+        for context, response in dataset:
+            new_context = [list(w) for w in context[0]]
+            new_response = [list(w) for w in response[1:-1]]
+            new_response = response[0] + reduce(lambda x, y: x + y, new_response) + response[-1]
+            new_dataset.append((new_context, new_response))
+        return new_dataset
 
     def build_vocab(self, max_vocab_cnt):
         all_context_words = []
