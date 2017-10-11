@@ -33,9 +33,9 @@ class Corpus(object):
         self.word2vec_dim = word2vec_dim
         self.word2vec = None
         data = pkl.load(open(self._path, "rb"))
-        self.train_corpus = self.preprocess_for_keywords2comment(data["train"])  # [(context, response), ...]
-        self.valid_corpus = self.preprocess_for_keywords2comment(data["valid"])
-        self.test_corpus = self.preprocess_for_keywords2comment(data["test"])
+        self.train_corpus = data["train"] # [(context, response), ...]
+        self.valid_corpus = data["valid"]
+        self.test_corpus = data["test"]
         self.build_vocab(max_vocab_cnt)
         self.load_word2vec()
         print("Done loading corpus")

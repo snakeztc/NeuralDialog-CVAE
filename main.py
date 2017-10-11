@@ -13,15 +13,15 @@ from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
 
 # constants
-tf.app.flags.DEFINE_string("model_name", "keywords2comment", "Model name.")
+tf.app.flags.DEFINE_string("model_name", "title2comment", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
-tf.app.flags.DEFINE_string("data_dir", "data/DQD_kw2c_dataset.pkl", "Raw data directory.")
+tf.app.flags.DEFINE_string("data_dir", "data/DQD_title2c_dataset.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
-tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
+tf.app.flags.DEFINE_bool("forward_only", True, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
-tf.app.flags.DEFINE_string("test_path", None, "the dir to load checkpoint for forward only")
+tf.app.flags.DEFINE_string("test_path", "run1507358687", "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
 
 
