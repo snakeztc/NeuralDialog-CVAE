@@ -47,6 +47,8 @@ class Corpus(object):
         """
         new_dataset = []
         for context, response in dataset:
+            if len(context[0]) == 0:
+                continue
             new_context = [list(w) for w in context[0]]
             new_response = [list(w) for w in response[1:-1]]
             new_response = [response[0]] + reduce(lambda x, y: x + y, new_response) + [response[-1]]
