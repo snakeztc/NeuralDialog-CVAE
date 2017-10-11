@@ -19,7 +19,7 @@ tf.app.flags.DEFINE_string("data_dir", "data/DQD_title2c_dataset.pkl", "Raw data
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
-tf.app.flags.DEFINE_bool("forward_only", True, "Only do decoding")
+tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
 tf.app.flags.DEFINE_string("test_path", "run1507358687", "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
