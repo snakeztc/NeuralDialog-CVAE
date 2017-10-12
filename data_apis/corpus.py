@@ -22,9 +22,11 @@ corpus = (context, response)
 import cPickle as pkl
 from collections import Counter
 import numpy as np
+import random
 
 class Corpus(object):
-    def __init__(self, corpus_path, max_vocab_cnt=30000, word2vec=None, word2vec_dim=None):
+    def __init__(self, corpus_path, max_train_size=500000, max_valid_size=2000, max_test_size=500,
+                 max_vocab_cnt=30000, word2vec=None, word2vec_dim=None):
         """
         :param corpus_path: the folder that contains the corpus pickle file
         """
@@ -33,9 +35,9 @@ class Corpus(object):
         self.word2vec_dim = word2vec_dim
         self.word2vec = None
         data = pkl.load(open(self._path, "rb"))
-        self.train_corpus = data["train"] # [(context, response), ...]
-        self.valid_corpus = data["valid"]
-        self.test_corpus = data["test"]
+        self.train_corpus = random.sample(data["train"], min(max_train_size, len(data["train"]))) # [(context, response), ...]
+        self.valid_corpus = random.sample(data["valid"], min(max_valid_size, len(data["valid"])))
+        self.test_corpus = random.sample(data["test"], min(max_test_size, len(data["test"])))
         self.build_vocab(max_vocab_cnt)
         self.load_word2vec()
         print("Done loading corpus")

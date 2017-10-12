@@ -3,10 +3,11 @@
 
 class CVAEConfig(object):
     description = None
-    update_limit = 4000  # the number of mini-batch before evaluating the model
+    update_limit = 1000  # the number of mini-batch before evaluating the model
 
     vocab_size = 30000  # max vocabulary size
 
+    train_size = 500000  # valid-dataset size
     valid_size = 2000  # valid-dataset size
     test_size = 500  # test-dataset size
 
@@ -18,7 +19,7 @@ class CVAEConfig(object):
 
     # latent variable (gaussian variable)
     latent_size = 200  # the dimension of latent variable
-    full_kl_step = 120000  # how many batch before KL cost weight reaches 1.0
+    full_kl_step = 10000  # how many batch before KL cost weight reaches 1.0
     dec_keep_prob = 1.0  # do we use word drop decoder [Bowman el al 2015]
 
     # Network general
