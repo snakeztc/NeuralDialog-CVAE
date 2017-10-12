@@ -2,6 +2,7 @@
 
 import os
 import time
+import random
 
 import numpy as np
 import tensorflow as tf
@@ -52,8 +53,12 @@ def main():
 
     # convert to numeric input outputs that fits into TF models
     train_feed = DataLoader("Train", train_dataset, config)
-    valid_feed = DataLoader("Valid", valid_dataset, config)
-    test_feed = DataLoader("Test", test_dataset, config)
+    valid_feed = DataLoader("Valid",
+                            random.sample(valid_dataset, np.min(valid_config.valid_size, len(valid_dataset))),
+                            valid_config)
+    test_feed = DataLoader("Test",
+                           random.sample(test_dataset, np.min(test_config.test_size, len(test_dataset))),
+                           test_config)
 
     if FLAGS.forward_only or FLAGS.resume:
         log_dir = os.path.join(FLAGS.work_dir, FLAGS.model_name, FLAGS.test_path)
