@@ -14,9 +14,9 @@ from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
 
 # constants
-tf.app.flags.DEFINE_string("model_name", "title2comment", "Model name.")
+tf.app.flags.DEFINE_string("model_name", "title2comment_char_level", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
-tf.app.flags.DEFINE_string("data_dir", "data/DQD_title2c_dataset.pkl", "Raw data directory.")
+tf.app.flags.DEFINE_string("data_dir", "data/DQD_title2c_dataset_char_level.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
@@ -45,9 +45,10 @@ def main():
     pp(config)
 
     # get data set
-    api = Corpus(FLAGS.data_dir, max_train_size=config.train_size, max_valid_size=config.valid_size, max_test_size=config.test_size,
-                 max_vocab_cnt=config.vocab_size, word2vec=FLAGS.word2vec_path,
-                 word2vec_dim=config.embed_size)
+    api = Corpus(FLAGS.data_dir,
+                 max_train_size=config.train_size, max_valid_size=config.valid_size, max_test_size=config.test_size,
+                 max_vocab_cnt=config.vocab_size,
+                 word2vec=FLAGS.word2vec_path, word2vec_dim=config.embed_size)
     corpus = api.get_corpus()
 
     train_dataset, valid_dataset, test_dataset = corpus.get("train"), corpus.get("valid"), corpus.get("test")
