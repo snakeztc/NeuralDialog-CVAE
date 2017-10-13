@@ -58,12 +58,11 @@ class Corpus(object):
         return new_dataset
 
     def build_vocab(self, max_vocab_cnt):
-        all_context_words = []
-        all_response_words = []
+        all_words = []
         for context, response in self.train_corpus:
             new_context = reduce(lambda x, y: x + y, context)
-            all_context_words.extend(new_context)
-            all_response_words.extend(response)
+            all_words.extend(new_context)
+            all_words.extend(response)
 
         def _cutoff_vocab(all_word):
             vocab_count = Counter(all_word).most_common() # word frequence
@@ -78,11 +77,8 @@ class Corpus(object):
 
             return vocab, rev_vocab
 
-        print("Loading context vocabulary")
-        self.context_vocab, self.rev_context_vocab = _cutoff_vocab(all_context_words)
-
-        print("Loading response vocabulary")
-        self.response_vocab, self.rev_response_vocab = _cutoff_vocab(all_response_words)
+        print("Loading vocabulary")
+        self.vocab, self.rev_vocab = _cutoff_vocab(all_words)
 
     def load_word2vec(self):
         pass
@@ -118,8 +114,8 @@ class Corpus(object):
         def _to_id_corpus(data):
             results = []
             for context, response in data:
-                cxt_ids = _to_id_sentence(context, self.rev_context_vocab)
-                res_ids = _to_id_sentence(response, self.rev_response_vocab)
+                cxt_ids = _to_id_sentence(context, self.rev_vocab)
+                res_ids = _to_id_sentence(response, self.rev_vocab)
                 results.append((cxt_ids, res_ids))
             return results
 

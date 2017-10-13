@@ -77,8 +77,8 @@ def main():
         print("Created computation graphs")
         if api.word2vec is not None and not FLAGS.forward_only:
             print("Loaded word2vec")
-            sess.run(model.context_embedding.assign(np.array(api.word2vec)))
-            sess.run(model.response_embedding.assign(np.array(api.word2vec)))
+            sess.run(model.embedding.assign(np.array(api.word2vec)))
+            sess.run(model.embedding.assign(np.array(api.word2vec)))
 
         # write config to a file for logging
         if not FLAGS.forward_only:

@@ -122,18 +122,15 @@ class BaseTFModel(object):
 class RnnCVAE(BaseTFModel):
 
     def __init__(self, sess, config, api, log_dir, forward, scope=None):
-        self.context_vocab = api.context_vocab
-        self.rev_context_vocab = api.rev_context_vocab
-        self.response_vocab = api.response_vocab
-        self.rev_response_vocab = api.rev_response_vocab
-        self.context_vocab_size = len(self.context_vocab)
-        self.response_vocab_size = len(self.response_vocab)
+        self.vocab = api.vocab
+        self.rev_vocab = api.rev_vocab
+        self.vocab_size = len(self.vocab)
 
         self.sess = sess
         self.scope = scope
         self.max_utt_len = config.max_utt_len
-        self.go_id = self.rev_response_vocab["<s>"]
-        self.eos_id = self.rev_response_vocab["</s>"]
+        self.go_id = self.rev_vocab["<s>"]
+        self.eos_id = self.rev_vocab["</s>"]
         self.context_cell_size = config.cxt_cell_size
         self.sent_cell_size = config.sent_cell_size
         self.dec_cell_size = config.dec_cell_size
@@ -158,21 +155,14 @@ class RnnCVAE(BaseTFModel):
         batch_size = array_ops.shape(self.input_contexts)[0]
 
         with variable_scope.variable_scope("wordEmbedding"):
-            self.context_embedding = tf.get_variable("context_embedding", [self.context_vocab_size, config.embed_size], dtype=tf.float32)
-            context_embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.context_vocab_size)], dtype=tf.float32,
-                                         shape=[self.context_vocab_size, 1])
-            context_embedding = self.context_embedding * context_embedding_mask
+            self.embedding = tf.get_variable("word_embedding", [self.vocab_size, config.embed_size], dtype=tf.float32)
+            embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.vocab_size)], dtype=tf.float32,
+                                         shape=[self.vocab_size, 1])
+            embedding = self.embedding * embedding_mask
 
-            self.response_embedding = tf.get_variable("response_embedding", [self.response_vocab_size, config.embed_size],
-                                                     dtype=tf.float32)
-            response_embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.response_vocab_size)],
-                                                 dtype=tf.float32,
-                                                 shape=[self.response_vocab_size, 1])
-            response_embedding = self.response_embedding * response_embedding_mask
-
-            input_embedding = embedding_ops.embedding_lookup(context_embedding, tf.reshape(self.input_contexts, [-1]))
+            input_embedding = embedding_ops.embedding_lookup(embedding, tf.reshape(self.input_contexts, [-1]))
             input_embedding = tf.reshape(input_embedding, [-1, self.max_utt_len, config.embed_size])
-            output_embedding = embedding_ops.embedding_lookup(response_embedding, self.output_tokens)
+            output_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
 
             # context nn
             if config.sent_type == "bow":
@@ -237,7 +227,7 @@ class RnnCVAE(BaseTFModel):
             bow_fc1 = layers.fully_connected(gen_inputs, 400, activation_fn=tf.tanh, scope="bow_fc1")
             if config.keep_prob < 1.0:
                 bow_fc1 = tf.nn.dropout(bow_fc1, config.keep_prob)
-            self.bow_logits = layers.fully_connected(bow_fc1, self.response_vocab_size, activation_fn=None, scope="bow_project")
+            self.bow_logits = layers.fully_connected(bow_fc1, self.vocab_size, activation_fn=None, scope="bow_project")
 
             dec_inputs = gen_inputs
 
@@ -251,20 +241,20 @@ class RnnCVAE(BaseTFModel):
 
         with variable_scope.variable_scope("decoder"):
             dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
-            dec_cell = OutputProjectionWrapper(dec_cell, self.response_vocab_size)
+            dec_cell = OutputProjectionWrapper(dec_cell, self.vocab_size)
 
             if forward:
-                loop_func = decoder_fn_lib.context_decoder_fn_inference(None, dec_init_state, response_embedding,
+                loop_func = decoder_fn_lib.context_decoder_fn_inference(None, dec_init_state, embedding,
                                                                         start_of_sequence_id=self.go_id,
                                                                         end_of_sequence_id=self.eos_id,
                                                                         maximum_length=self.max_utt_len,
-                                                                        num_decoder_symbols=self.response_vocab_size,
+                                                                        num_decoder_symbols=self.vocab_size,
                                                                         context_vector=None)
                 dec_input_embedding = None
                 dec_seq_lens = None
             else:
                 loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, None)
-                dec_input_embedding = embedding_ops.embedding_lookup(response_embedding, self.output_tokens)
+                dec_input_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
                 dec_input_embedding = dec_input_embedding[:, 0:-1, :]
                 dec_seq_lens = self.output_lens - 1
 
@@ -447,17 +437,17 @@ class RnnCVAE(BaseTFModel):
                 # print the dialog context
                 dest.write("Batch %d index %d\n" % (local_t, b_id))
                 for t_id in range(0, true_src_lens[b_id], 1):
-                    src_str = " ".join([self.context_vocab[e] for e in true_srcs[b_id, t_id].tolist() if e != 0])
+                    src_str = " ".join([self.vocab[e] for e in true_srcs[b_id, t_id].tolist() if e != 0])
                     dest.write("Src %d: %s\n" % (t_id, src_str))
                 # print the true outputs
-                true_tokens = [self.response_vocab[e] for e in true_outs[b_id].tolist() if e not in [0, self.eos_id, self.go_id]]
+                true_tokens = [self.vocab[e] for e in true_outs[b_id].tolist() if e not in [0, self.eos_id, self.go_id]]
                 true_str = " ".join(true_tokens).replace(" ' ", "'")
                 # print the predicted outputs
                 dest.write("Target >> %s\n" % true_str)
                 local_tokens = []
                 for r_id in range(repeat):
                     pred_outs = sample_words[r_id]
-                    pred_tokens = [self.response_vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
+                    pred_tokens = [self.vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
                     pred_str = " ".join(pred_tokens).replace(" ' ", "'")
                     dest.write("Sample %d >> %s\n" % (r_id, pred_str))
                     local_tokens.append(pred_tokens)
