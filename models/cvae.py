@@ -134,6 +134,7 @@ class RnnCVAE(BaseTFModel):
         self.context_cell_size = config.cxt_cell_size
         self.sent_cell_size = config.sent_cell_size
         self.dec_cell_size = config.dec_cell_size
+        self.bow_weights = config.bow_weights
 
         with tf.name_scope("io"):
             # all dialog context and known attributes
@@ -295,6 +296,7 @@ class RnnCVAE(BaseTFModel):
                 bow_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=tile_bow_logits, labels=labels) * label_mask
                 bow_loss = tf.reduce_sum(bow_loss, reduction_indices=1)
                 self.avg_bow_loss  = tf.reduce_mean(bow_loss)
+                bow_weights = tf.to_float(self.bow_weights)
 
                 kld = gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar)
                 self.avg_kld = tf.reduce_mean(kld)
@@ -305,7 +307,7 @@ class RnnCVAE(BaseTFModel):
 
                 self.kl_w = kl_weights
                 self.elbo = self.avg_rc_loss + kl_weights * self.avg_kld
-                aug_elbo = self.avg_bow_loss + self.elbo
+                aug_elbo = bow_weights * self.avg_bow_loss + self.elbo
 
                 tf.summary.scalar("rc_loss", self.avg_rc_loss)
                 tf.summary.scalar("elbo", self.elbo)

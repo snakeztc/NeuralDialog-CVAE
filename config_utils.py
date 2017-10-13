@@ -11,6 +11,8 @@ class CVAEConfig(object):
     valid_size = 2000  # valid-dataset size
     test_size = 500  # test-dataset size
 
+    bow_weights = 0.1  # weight of bow loss
+
     # how to encode utterance.
     # bow: add word embedding together
     # rnn: RNN utterance encoder
