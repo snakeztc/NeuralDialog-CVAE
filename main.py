@@ -14,7 +14,7 @@ from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
 
 # constants
-tf.app.flags.DEFINE_string("model_name", "title2comment_char_level", "Model name.")
+tf.app.flags.DEFINE_string("model_name", "t2c_char_level/cVAE_dkp=1.0", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
 tf.app.flags.DEFINE_string("data_dir", "data/DQD_title2c_dataset_char_level.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
