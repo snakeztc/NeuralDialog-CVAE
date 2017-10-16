@@ -11,7 +11,7 @@ class CVAEConfig(object):
     valid_size = 2000  # valid-dataset size
     test_size = 2000  # test-dataset size
 
-    bow_weights = 0.0  # weight of bow loss
+    bow_weights = 1.0  # weight of bow loss
 
     # how to encode utterance.
     # bow: add word embedding together
@@ -20,7 +20,7 @@ class CVAEConfig(object):
     sent_type = "bi_rnn"
 
     # latent variable (gaussian variable)
-    latent_size = 200  # the dimension of latent variable
+    latent_size = 30  # the dimension of latent variable
     full_kl_step = 10000  # how many batch before KL cost weight reaches 1.0
     dec_keep_prob = 1.0  # do we use word drop decoder [Bowman el al 2015]
 

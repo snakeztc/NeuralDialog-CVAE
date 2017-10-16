@@ -250,11 +250,11 @@ class RnnCVAE(BaseTFModel):
                                                                         end_of_sequence_id=self.eos_id,
                                                                         maximum_length=self.max_utt_len,
                                                                         num_decoder_symbols=self.vocab_size,
-                                                                        context_vector=None)
+                                                                        context_vector=dec_init_state)
                 dec_input_embedding = None
                 dec_seq_lens = None
             else:
-                loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, None)
+                loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, dec_init_state)
                 dec_input_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
                 dec_input_embedding = dec_input_embedding[:, 0:-1, :]
                 dec_seq_lens = self.output_lens - 1
