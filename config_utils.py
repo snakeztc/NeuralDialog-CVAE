@@ -7,7 +7,7 @@ class CVAEConfig(object):
 
     vocab_size = 4000  # max vocabulary size
 
-    train_size = 1500000  # valid-dataset size
+    train_size = 5000000  # valid-dataset size
     valid_size = 2000  # valid-dataset size
     test_size = 2000  # test-dataset size
 
@@ -45,5 +45,5 @@ class CVAEConfig(object):
     improve_threshold = 0.996  # for early stopping
     patient_increase = 2.0  # for early stopping
     early_stop = True
-    max_epoch = 50  # max number of epoch of training
+    max_epoch = 80  # max number of epoch of training
     grad_noise = 0.0  # inject gradient noise?
