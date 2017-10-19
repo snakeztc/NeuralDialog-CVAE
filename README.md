@@ -33,6 +33,13 @@ The default setting use 200 dimension word embedding trained on Twitter.
 
 At last, set **word2vec_path** at line 15 of kgcvae_swda.py.
 
+## Dataset
+We release two dataset:
+
+1. full_swda_clean_42da_sentiment_dialog_corpus.p is a binary dump using python Pickle library that contains the raw data and used for training
+2. test_mutl_ref.json is only the test data set with multiple references responses with dialog act annotations. The multiple referneces are collected
+according to the method described in the Appendix of the paper.
+
 # Data Format
 If you want to train the model on your own data. Please create a pickle file has the following format:
 
