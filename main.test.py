@@ -14,15 +14,15 @@ from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
 
 # constants
-tf.app.flags.DEFINE_string("model_name", "t2c_char_level/cVAE_with_BOW_loss", "Model name.")
+tf.app.flags.DEFINE_string("model_name", "c2c_char_level/cVAE_with_BOW_loss", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
-tf.app.flags.DEFINE_string("data_dir", "data/DQD_title2c_dataset_char_level.pkl", "Raw data directory.")
+tf.app.flags.DEFINE_string("data_dir", "data/DQD_content2comment_dataset.lmfilter.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
 tf.app.flags.DEFINE_bool("forward_only", True, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
-tf.app.flags.DEFINE_string("test_path", "run1508074513", "the dir to load checkpoint for forward only")
+tf.app.flags.DEFINE_string("test_path", "run1508659693", "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -145,7 +145,7 @@ def main():
             train_feed = DataLoader("Train", random.sample(train_dataset, 500), test_config)
             dest_f = open(os.path.join(log_dir, "train.txt"), "wb")
             train_feed.epoch_init(test_config.batch_size, shuffle=False)
-            test_model.test(sess, train_feed, num_batch=None, repeat=10, dest=dest_f)
+            test_model.test(sess, train_feed, num_batch=None, repeat=100, dest=dest_f)
             dest_f.close()
 
             # begin validation
@@ -159,7 +159,7 @@ def main():
             test_feed = DataLoader("Test", test_dataset, test_config)
             dest_f = open(os.path.join(log_dir, "test.txt"), "wb")
             test_feed.epoch_init(test_config.batch_size, shuffle=False)
-            test_model.test(sess, test_feed, num_batch=None, repeat=30, dest=dest_f)
+            test_model.test(sess, test_feed, num_batch=None, repeat=100, dest=dest_f)
             dest_f.close()
 
 if __name__ == "__main__":
