@@ -3,7 +3,8 @@
 
 class CVAEConfig(object):
     description = None
-    update_limit = 5000  # the number of mini-batch before evaluating the model
+    use_hcf = True  # use dialog act in training (if turn off kgCVAE -> CVAE)
+    update_limit = 3000  # the number of mini-batch before evaluating the model
 
     vocab_size = 4000  # max vocabulary size
 
@@ -20,13 +21,14 @@ class CVAEConfig(object):
     sent_type = "bi_rnn"
 
     # latent variable (gaussian variable)
-    latent_size = 30  # the dimension of latent variable
+    latent_size = 200  # the dimension of latent variable
     full_kl_step = 30000  # how many batch before KL cost weight reaches 1.0
     dec_keep_prob = 1.0  # do we use word drop decoder [Bowman el al 2015]
 
     # Network general
     cell_type = "gru"  # gru or lstm
     embed_size = 200  # word embedding size
+    topic_embed_size = 30  # topic embedding size
     cxt_cell_size = 600  # context encoder hidden size
     sent_cell_size = 300  # utterance encoder hidden size
     dec_cell_size = 400  # response decoder hidden size
@@ -45,5 +47,5 @@ class CVAEConfig(object):
     improve_threshold = 0.996  # for early stopping
     patient_increase = 2.0  # for early stopping
     early_stop = True
-    max_epoch = 50  # max number of epoch of training
+    max_epoch = 80  # max number of epoch of training
     grad_noise = 0.0  # inject gradient noise?

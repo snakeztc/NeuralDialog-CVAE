@@ -42,27 +42,29 @@ class Corpus(object):
         self.load_word2vec()
         print("Done loading corpus")
 
-    def preprocess_for_keywords2comment(self, dataset):
-        """
-        :param dataset: [([[keyword1, keyword2, ...]], [<s>, w1, ..., </s>])]
-        :return: [([[c1, c2, ...], [c1, ...], ...], [<s>, c1, ..., </s>])]
-        """
-        new_dataset = []
-        for context, response in dataset:
-            if len(context[0]) == 0:
-                continue
-            new_context = [list(w) for w in context[0]]
-            new_response = [list(w) for w in response[1:-1]]
-            new_response = [response[0]] + reduce(lambda x, y: x + y, new_response) + [response[-1]]
-            new_dataset.append((new_context, new_response))
-        return new_dataset
+    #def preprocess_for_keywords2comment(self, dataset):
+    #    """
+    #    :param dataset: [([[keyword1, keyword2, ...]], [<s>, w1, ..., </s>])]
+    #    :return: [([[c1, c2, ...], [c1, ...], ...], [<s>, c1, ..., </s>])]
+    #    """
+    #    new_dataset = []
+    #    for context, response in dataset:
+    #        if len(context[0]) == 0:
+    #            continue
+    #        new_context = [list(w) for w in context[0]]
+    #        new_response = [list(w) for w in response[1:-1]]
+    #        new_response = [response[0]] + reduce(lambda x, y: x + y, new_response) + [response[-1]]
+    #        new_dataset.append((new_context, new_response))
+    #    return new_dataset
 
     def build_vocab(self, max_vocab_cnt):
         all_words = []
-        for context, response in self.train_corpus:
+        all_topic = []
+        for context, response, topic in self.train_corpus:
             new_context = reduce(lambda x, y: x + y, context)
             all_words.extend(new_context)
             all_words.extend(response)
+            all_topic.append(topic)
 
         def _cutoff_vocab(all_word):
             vocab_count = Counter(all_word).most_common() # word frequence
@@ -79,6 +81,10 @@ class Corpus(object):
 
         print("Loading vocabulary")
         self.vocab, self.rev_vocab = _cutoff_vocab(all_words)
+        self.topic_vocab = ["<unk>"] + [t for t, cnt in Counter(all_topic).most_common()]
+        self.rev_topic_vocab = {t: idx for idx, t in enumerate(self.topic_vocab)}
+        print("%d topics in train data" % len(self.topic_vocab))
+
 
     def load_word2vec(self):
         pass
@@ -113,10 +119,11 @@ class Corpus(object):
 
         def _to_id_corpus(data):
             results = []
-            for context, response in data:
+            for context, response, topic in data:
                 cxt_ids = _to_id_sentence(context, self.rev_vocab)
                 res_ids = _to_id_sentence(response, self.rev_vocab)
-                results.append((cxt_ids, res_ids))
+                topic_id = self.rev_topic_vocab.get(topic, self.rev_topic_vocab["<unk>"])
+                results.append((cxt_ids, res_ids, topic_id))
             return results
 
         id_train = _to_id_corpus(self.train_corpus)

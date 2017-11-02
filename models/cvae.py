@@ -125,6 +125,8 @@ class RnnCVAE(BaseTFModel):
         self.vocab = api.vocab
         self.rev_vocab = api.rev_vocab
         self.vocab_size = len(self.vocab)
+        self.topic_vocab = api.topic_vocab
+        self.topic_vocab_size = len(self.topic_vocab)
 
         self.sess = sess
         self.scope = scope
@@ -144,6 +146,7 @@ class RnnCVAE(BaseTFModel):
             # target response given the dialog context
             self.output_tokens = tf.placeholder(dtype=tf.int32, shape=(None, None), name="output_token")
             self.output_lens = tf.placeholder(dtype=tf.int32, shape=(None,), name="output_lens")
+            self.output_topics = tf.placeholder(dtype=tf.int32, shape=(None,), name="output_topic")
 
             # optimization related variables
             self.learning_rate = tf.Variable(float(config.init_lr), trainable=False, name="learning_rate")
@@ -155,8 +158,13 @@ class RnnCVAE(BaseTFModel):
         max_out_len = array_ops.shape(self.output_tokens)[1]
         batch_size = array_ops.shape(self.input_contexts)[0]
 
+        if config.use_hcf:
+            with variable_scope.variable_scope("topicEmbedding"):
+                t_embedding = tf.get_variable("embedding", [self.topic_vocab_size, config.topic_embed_size], dtype=tf.float32)
+                topic_embedding = embedding_ops.embedding_lookup(t_embedding, self.output_topics)
+
         with variable_scope.variable_scope("wordEmbedding"):
-            self.embedding = tf.get_variable("word_embedding", [self.vocab_size, config.embed_size], dtype=tf.float32)
+            self.embedding = tf.get_variable("embedding", [self.vocab_size, config.embed_size], dtype=tf.float32)
             embedding_mask = tf.constant([0 if i == 0 else 1 for i in range(self.vocab_size)], dtype=tf.float32,
                                          shape=[self.vocab_size, 1])
             embedding = self.embedding * embedding_mask
@@ -168,9 +176,13 @@ class RnnCVAE(BaseTFModel):
             # context nn
             if config.sent_type == "bow":
                 input_embedding, sent_size = get_bow(input_embedding)
+                output_embedding, _ = get_bow(output_embedding)
+
             elif config.sent_type == "rnn":
                 sent_cell = self.get_rnncell("gru", self.sent_cell_size, config.keep_prob, 1)
                 input_embedding, sent_size = get_rnn_encode(input_embedding, sent_cell, scope="sent_rnn")
+                output_embedding, _ = get_rnn_encode(output_embedding, sent_cell, self.output_lens,
+                                                     scope="sent_rnn", reuse=True)
             elif config.sent_type == "bi_rnn":
                 fwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
                 bwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
@@ -184,12 +196,6 @@ class RnnCVAE(BaseTFModel):
             if config.keep_prob < 1.0:
                 input_embedding = tf.nn.dropout(input_embedding, config.keep_prob)
 
-            # response nn
-            if config.sent_type != "bi_rnn":
-                fwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
-                bwd_sent_cell = self.get_rnncell("gru", self.sent_cell_size, keep_prob=1.0, num_layer=1)
-                output_embedding, _ = get_bi_rnn_encode(output_embedding, fwd_sent_cell, bwd_sent_cell, self.output_lens, scope="sent_bi_rnn")
-
         with variable_scope.variable_scope("contextRNN"):
             enc_cell = self.get_rnncell(config.cell_type, self.context_cell_size, keep_prob=1.0, num_layer=config.num_layer)
             # and enc_last_state will be same as the true last state
@@ -202,10 +208,18 @@ class RnnCVAE(BaseTFModel):
             if config.num_layer > 1:
                 enc_last_state = tf.concat(enc_last_state, 1)
 
+        # combine with other attributes
+        if config.use_hcf:
+            attribute_embedding = topic_embedding
+            attribute_fc1 = layers.fully_connected(attribute_embedding, 30, activation_fn=tf.tanh, scope="attribute_fc1")
+
         cond_embedding = enc_last_state
 
         with variable_scope.variable_scope("recognitionNetwork"):
-            recog_input = tf.concat([cond_embedding, output_embedding], 1)
+            if config.use_hcf:
+                recog_input = tf.concat([cond_embedding, output_embedding, attribute_fc1], 1)
+            else:
+                recog_input = tf.concat([cond_embedding, output_embedding], 1)
             self.recog_mulogvar = recog_mulogvar = layers.fully_connected(recog_input, config.latent_size * 2, activation_fn=None, scope="muvar")
             recog_mu, recog_logvar = tf.split(recog_mulogvar, 2, axis=1)
 
@@ -230,7 +244,23 @@ class RnnCVAE(BaseTFModel):
                 bow_fc1 = tf.nn.dropout(bow_fc1, config.keep_prob)
             self.bow_logits = layers.fully_connected(bow_fc1, self.vocab_size, activation_fn=None, scope="bow_project")
 
-            dec_inputs = gen_inputs
+            # Y loss
+            if config.use_hcf:
+                meta_fc1 = layers.fully_connected(gen_inputs, 400, activation_fn=tf.tanh, scope="meta_fc1")
+                if config.keep_prob <1.0:
+                    meta_fc1 = tf.nn.dropout(meta_fc1, config.keep_prob)
+                self.topic_logits = layers.fully_connected(meta_fc1, self.topic_vocab_size, scope="topic_project")
+                topic_prob = tf.nn.softmax(self.topic_logits)
+                pred_attribute_embedding = tf.matmul(topic_prob, t_embedding)
+                if forward:
+                    selected_attribute_embedding = pred_attribute_embedding
+                else:
+                    selected_attribute_embedding = attribute_embedding
+                dec_inputs = tf.concat([gen_inputs, selected_attribute_embedding], 1)
+            else:
+                self.topic_logits = tf.zeros((batch_size, self.topic_vocab_size))
+                selected_attribute_embedding = None
+                dec_inputs = gen_inputs
 
             # Decoder
             if config.num_layer > 1:
@@ -250,11 +280,11 @@ class RnnCVAE(BaseTFModel):
                                                                         end_of_sequence_id=self.eos_id,
                                                                         maximum_length=self.max_utt_len,
                                                                         num_decoder_symbols=self.vocab_size,
-                                                                        context_vector=dec_init_state)
+                                                                        context_vector=selected_attribute_embedding)
                 dec_input_embedding = None
                 dec_seq_lens = None
             else:
-                loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, dec_init_state)
+                loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, selected_attribute_embedding)
                 dec_input_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
                 dec_input_embedding = dec_input_embedding[:, 0:-1, :]
                 dec_seq_lens = self.output_lens - 1
@@ -298,6 +328,13 @@ class RnnCVAE(BaseTFModel):
                 self.avg_bow_loss  = tf.reduce_mean(bow_loss)
                 bow_weights = tf.to_float(self.bow_weights)
 
+                # reconstruct the meta info about X
+                if config.use_hcf:
+                    topic_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.topic_logits, labels=self.output_topics)
+                    self.avg_topic_loss = tf.reduce_mean(topic_loss)
+                else:
+                    self.avg_topic_loss = 0.0
+
                 kld = gaussian_kld(recog_mu, recog_logvar, prior_mu, prior_logvar)
                 self.avg_kld = tf.reduce_mean(kld)
                 if log_dir is not None:
@@ -307,8 +344,9 @@ class RnnCVAE(BaseTFModel):
 
                 self.kl_w = kl_weights
                 self.elbo = self.avg_rc_loss + kl_weights * self.avg_kld
-                aug_elbo = bow_weights * self.avg_bow_loss + self.elbo
+                aug_elbo = bow_weights * self.avg_bow_loss + self.avg_topic_loss + self.elbo
 
+                tf.summary.scalar("topic_loss", self.avg_topic_loss)
                 tf.summary.scalar("rc_loss", self.avg_rc_loss)
                 tf.summary.scalar("elbo", self.elbo)
                 tf.summary.scalar("kld", self.avg_kld)
@@ -325,10 +363,10 @@ class RnnCVAE(BaseTFModel):
         self.saver = tf.train.Saver(tf.global_variables(), write_version=tf.train.SaverDef.V2)
 
     def batch_2_feed(self, batch, global_t, use_prior, repeat=1):
-        context, context_lens, outputs, output_lens = batch
+        context, context_lens, outputs, output_lens, output_topics = batch
         feed_dict = {self.input_contexts: context, self.context_lens: context_lens,
                      self.output_tokens: outputs, self.output_lens: output_lens,
-                     self.use_prior: use_prior}
+                     self.output_topics: output_topics, self.use_prior: use_prior}
         if repeat > 1:
             tiled_feed_dict = {}
             for key, val in feed_dict.items():
@@ -423,12 +461,14 @@ class RnnCVAE(BaseTFModel):
             if batch is None or (num_batch is not None and local_t > num_batch):
                 break
             feed_dict = self.batch_2_feed(batch, None, use_prior=True, repeat=repeat)
-            word_outs, = sess.run([self.dec_out_words], feed_dict)
+            word_outs, topic_logits = sess.run([self.dec_out_words, self.topic_logits], feed_dict)
             sample_words = np.split(word_outs, repeat, axis=0)
+            sample_topic = np.split(topic_logits, repeat, axis=0)
 
             true_srcs = feed_dict[self.input_contexts]
             true_src_lens = feed_dict[self.context_lens]
             true_outs = feed_dict[self.output_tokens]
+            true_topics = feed_dict[self.output_topics]
             local_t += 1
 
             if dest != sys.stdout:
@@ -444,14 +484,16 @@ class RnnCVAE(BaseTFModel):
                 # print the true outputs
                 true_tokens = [self.vocab[e] for e in true_outs[b_id].tolist() if e not in [0, self.eos_id, self.go_id]]
                 true_str = " ".join(true_tokens).replace(" ' ", "'")
+                topic_str = self.topic_vocab[true_topics[b_id]]
                 # print the predicted outputs
-                dest.write("Target >> %s\n" % true_str)
+                dest.write("Target (%s) >> %s\n" % (topic_str, true_str))
                 local_tokens = []
                 for r_id in range(repeat):
                     pred_outs = sample_words[r_id]
+                    pred_topic = np.argmax(sample_topic[r_id], axis=1)[0]
                     pred_tokens = [self.vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
                     pred_str = " ".join(pred_tokens).replace(" ' ", "'")
-                    dest.write("Sample %d >> %s\n" % (r_id, pred_str))
+                    dest.write("Sample %d (%s) >> %s\n" % (r_id, self.topic_vocab[pred_topic], pred_str))
                     local_tokens.append(pred_tokens)
 
                 max_bleu, avg_bleu = utils.get_bleu_stats(true_tokens, local_tokens)

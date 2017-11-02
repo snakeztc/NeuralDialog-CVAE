@@ -69,8 +69,8 @@ class DataLoader(LongDataLoader):
         rows = [self.data[idx] for idx in batch_ids] #[(context, response), ...]
 
         # input_context, context_lens, outputs, output_lens
-        context_utts, context_lens, out_utts, out_lens = [], [], [], []
-        for context, response in rows:
+        context_utts, context_lens, out_utts, out_lens, out_topics = [], [], [], [], []
+        for context, response, topic in rows:
             context_utts.append([self.pad_to(sen) for sen in context])
             context_lens.append(len(context))
 
@@ -78,13 +78,16 @@ class DataLoader(LongDataLoader):
             out_utts.append(out_utt)
             out_lens.append(len(out_utt))
 
+            out_topics.append(topic)
+
         vec_context_lens = np.array(context_lens)
         vec_context = np.zeros((self.batch_size, np.max(vec_context_lens), self.max_utt_size), dtype=np.int32)
         vec_out_lens = np.array(out_lens)
         vec_outs = np.zeros((self.batch_size, np.max(out_lens)), dtype=np.int32)
+        vec_out_topics = np.array(out_topics)
 
         for b_id in range(self.batch_size):
             vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
             vec_context[b_id, 0:vec_context_lens[b_id], :] = np.array(context_utts[b_id])
 
-        return vec_context, vec_context_lens, vec_outs, vec_out_lens
+        return vec_context, vec_context_lens, vec_outs, vec_out_lens, vec_out_topics

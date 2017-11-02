@@ -14,9 +14,9 @@ from data_apis.data_utils import DataLoader
 from models.cvae import RnnCVAE
 
 # constants
-tf.app.flags.DEFINE_string("model_name", "c2c_char_level/cVAE_with_BOW_loss", "Model name.")
+tf.app.flags.DEFINE_string("model_name", "c2c_char_level/kgcVAE_with_BOW_loss", "Model name.")
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
-tf.app.flags.DEFINE_string("data_dir", "data/DQD_content2comment_dataset.lmfilter.pkl", "Raw data directory.")
+tf.app.flags.DEFINE_string("data_dir", "data/DQD_content2comment_dataset.with_topic.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
 tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
