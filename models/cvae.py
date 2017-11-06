@@ -246,7 +246,7 @@ class RnnCVAE(BaseTFModel):
 
             # Y loss
             if config.use_hcf:
-                meta_fc1 = layers.fully_connected(gen_inputs, 400, activation_fn=tf.tanh, scope="meta_fc1")
+                meta_fc1 = layers.fully_connected(latent_sample, 400, activation_fn=tf.tanh, scope="meta_fc1")
                 if config.keep_prob <1.0:
                     meta_fc1 = tf.nn.dropout(meta_fc1, config.keep_prob)
                 self.topic_logits = layers.fully_connected(meta_fc1, self.topic_vocab_size, scope="topic_project")

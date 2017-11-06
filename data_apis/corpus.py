@@ -81,7 +81,7 @@ class Corpus(object):
 
         print("Loading vocabulary")
         self.vocab, self.rev_vocab = _cutoff_vocab(all_words)
-        self.topic_vocab = ["<unk>"] + [t for t, cnt in Counter(all_topic).most_common()]
+        self.topic_vocab = [t for t, cnt in Counter(all_topic).most_common()]
         self.rev_topic_vocab = {t: idx for idx, t in enumerate(self.topic_vocab)}
         print("%d topics in train data" % len(self.topic_vocab))
 
@@ -122,7 +122,7 @@ class Corpus(object):
             for context, response, topic in data:
                 cxt_ids = _to_id_sentence(context, self.rev_vocab)
                 res_ids = _to_id_sentence(response, self.rev_vocab)
-                topic_id = self.rev_topic_vocab.get(topic, self.rev_topic_vocab["<unk>"])
+                topic_id = self.rev_topic_vocab[topic]
                 results.append((cxt_ids, res_ids, topic_id))
             return results
 
