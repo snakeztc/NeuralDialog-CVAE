@@ -3,8 +3,8 @@
 
 class CVAEConfig(object):
     description = None
-    use_hcf = True  # use dialog act in training (if turn off kgCVAE -> CVAE)
-    update_limit = 5000  # the number of mini-batch before evaluating the model
+    use_hcf = False  # use dialog act in training (if turn off kgCVAE -> CVAE)
+    update_limit = 3000  # the number of mini-batch before evaluating the model
 
     vocab_size = 4000  # max vocabulary size
 

@@ -272,13 +272,19 @@ class RnnCVAE(BaseTFModel):
                 dec_init_state = layers.fully_connected(dec_inputs, self.dec_cell_size, activation_fn=None, scope="init_state")
 
         with variable_scope.variable_scope("decoder"):
-            # Create an attention mechanism
-            attention_mechanism = tf.contrib.seq2seq.LuongAttention(
-                self.dec_cell_size, encoder_outputs,
-                memory_sequence_length=self.context_lens)
             dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
-            dec_cell = tf.contrib.seq2seq.AttentionWrapper(
-                dec_cell, attention_mechanism)
+            
+            # Create an attention mechanism
+            #attention_mechanism = tf.contrib.seq2seq.LuongAttention(
+            #    self.dec_cell_size, encoder_outputs,
+            #    memory_sequence_length=self.context_lens)
+            #dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
+            #dec_cell = tf.contrib.seq2seq.AttentionWrapper(
+            #    dec_cell, attention_mechanism)
+            
+            # dec_init_state must be a instance of AttentionWrapperState Class
+            #dec_init_state = dec_cell.zero_state(batch_size, dtype=tf.float32).clone(
+            #    cell_state=dec_init_state)
 
             projection_layer = layers_core.Dense(self.vocab_size, use_bias=False)
 
@@ -294,7 +300,7 @@ class RnnCVAE(BaseTFModel):
                     output_layer=projection_layer)
 
                 # Dynamic decoding
-                outputs, _ = tf.contrib.seq2seq.dynamic_decode(
+                outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(
                     decoder, maximum_iterations=self.max_utt_len)
             else:
                 # loop_func = decoder_fn_lib.context_decoder_fn_train(dec_init_state, selected_attribute_embedding)
@@ -318,7 +324,7 @@ class RnnCVAE(BaseTFModel):
                 decoder = tf.contrib.seq2seq.BasicDecoder(dec_cell, helper, dec_init_state,
                                                           output_layer=projection_layer)
 
-                outputs, _ = tf.contrib.seq2seq.dynamic_decode(decoder)
+                outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder)
 
             dec_outs = outputs.rnn_output
             self.dec_out_words = outputs.sample_id
@@ -504,8 +510,10 @@ class RnnCVAE(BaseTFModel):
                 for r_id in range(repeat):
                     pred_outs = sample_words[r_id]
                     pred_topic = np.argmax(sample_topic[r_id], axis=1)[0]
+                    pred_ids = " ".join([str(e) for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0])
                     pred_tokens = [self.vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
                     pred_str = " ".join(pred_tokens).replace(" ' ", "'")
+                    dest.write("Sample %d (%s) >> %s\n" % (r_id, self.topic_vocab[pred_topic], pred_ids))
                     dest.write("Sample %d (%s) >> %s\n" % (r_id, self.topic_vocab[pred_topic], pred_str))
                     local_tokens.append(pred_tokens)
 
