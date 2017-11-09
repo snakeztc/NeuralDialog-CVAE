@@ -3,6 +3,7 @@
 import os
 import time
 import random
+import sys
 
 import numpy as np
 import tensorflow as tf
@@ -18,12 +19,13 @@ tf.app.flags.DEFINE_string("model_name", "c2c_char_level/cVAE_with_attention", "
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
 tf.app.flags.DEFINE_string("data_dir", "data/DQD_content2comment_dataset.with_LDA_topic.pkl", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
-tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
+tf.app.flags.DEFINE_bool("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
 tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
 tf.app.flags.DEFINE_string("test_path", "", "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
+FLAGS(sys.argv)
 
 
 def main():

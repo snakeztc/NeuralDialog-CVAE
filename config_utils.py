@@ -21,17 +21,17 @@ class CVAEConfig(object):
     sent_type = "bi_rnn"
 
     # latent variable (gaussian variable)
-    latent_size = 30  # the dimension of latent variable
+    latent_size = 50  # the dimension of latent variable
     full_kl_step = 30000  # how many batch before KL cost weight reaches 1.0
     dec_keep_prob = 1.0  # do we use word drop decoder [Bowman el al 2015]
 
     # Network general
     cell_type = "gru"  # gru or lstm
     embed_size = 200  # word embedding size
-    topic_embed_size = 30  # topic embedding size
-    cxt_cell_size = 600  # context encoder hidden size
-    sent_cell_size = 300  # utterance encoder hidden size
-    dec_cell_size = 400  # response decoder hidden size
+    topic_embed_size = 50  # topic embedding size
+    cxt_cell_size = 200  # context encoder hidden size
+    sent_cell_size = 200  # utterance encoder hidden size
+    dec_cell_size = 200  # response decoder hidden size
     max_utt_len = 80  # max number of words in an utterance
     num_layer = 1  # number of context RNN layers
 

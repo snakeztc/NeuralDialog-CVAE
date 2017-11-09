@@ -311,12 +311,14 @@ class RnnCVAE(BaseTFModel):
                 helper = tf.contrib.seq2seq.TrainingHelper(dec_input_embedding, dec_seq_lens)
 
             # Create an attention mechanism
-            attention_mechanism = tf.contrib.seq2seq.LuongAttention(
+            attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
                 self.dec_cell_size, input_title_outputs,
                 memory_sequence_length=self.title_lens)
             dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
             attn_cell = tf.contrib.seq2seq.AttentionWrapper(
-                dec_cell, attention_mechanism)
+                dec_cell, attention_mechanism,
+                output_attention=False,
+            )
             out_cell = tf.contrib.rnn.OutputProjectionWrapper(
                 attn_cell, self.vocab_size)
 
