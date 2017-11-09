@@ -519,10 +519,8 @@ class RnnCVAE(BaseTFModel):
                 for r_id in range(repeat):
                     pred_outs = sample_words[r_id]
                     pred_topic = np.argmax(sample_topic[r_id], axis=1)[0]
-                    pred_ids = " ".join([str(e) for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0])
                     pred_tokens = [self.vocab[e] for e in pred_outs[b_id].tolist() if e != self.eos_id and e != 0]
                     pred_str = " ".join(pred_tokens).replace(" ' ", "'")
-                    dest.write("Sample %d (%s) >> %s\n" % (r_id, self.topic_vocab[pred_topic], pred_ids))
                     dest.write("Sample %d (%s) >> %s\n" % (r_id, self.topic_vocab[pred_topic], pred_str))
                     local_tokens.append(pred_tokens)
 

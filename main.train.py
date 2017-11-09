@@ -25,7 +25,9 @@ tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
 tf.app.flags.DEFINE_string("test_path", "", "the dir to load checkpoint for forward only")
 FLAGS = tf.app.flags.FLAGS
-FLAGS(sys.argv)
+
+
+# FLAGS(sys.argv)
 
 
 def main():
