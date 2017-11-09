@@ -291,7 +291,7 @@ class RnnCVAE(BaseTFModel):
             # Helper
             if forward:
                 helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(
-                    embedding, start_tokens=self.go_id, end_token=self.eos_id)
+                    embedding, tf.fill([batch_size], self.go_id), self.eos_id)
             else:
                 dec_input_embedding = embedding_ops.embedding_lookup(embedding, self.output_tokens)
                 dec_input_embedding = dec_input_embedding[:, 0:-1, :]
