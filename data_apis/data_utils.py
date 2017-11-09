@@ -69,10 +69,13 @@ class DataLoader(LongDataLoader):
         rows = [self.data[idx] for idx in batch_ids] #[(context, response), ...]
 
         # input_context, context_lens, outputs, output_lens
-        context_utts, context_lens, out_utts, out_lens, out_topics = [], [], [], [], []
+        titles, title_lens, context_utts, context_lens, out_utts, out_lens, out_topics = [], [], [], [], [], [], []
         for context, response, topic in rows:
-            context_utts.append([self.pad_to(sen) for sen in context])
-            context_lens.append(len(context))
+            titles.append(self.pad_to(context[0]))
+            title_lens.append(len(context[0]))
+
+            context_utts.append([self.pad_to(sen) for sen in context[1:]])
+            context_lens.append(len(context) - 1)
 
             out_utt = self.pad_to(response, do_pad=False)
             out_utts.append(out_utt)
@@ -80,14 +83,17 @@ class DataLoader(LongDataLoader):
 
             out_topics.append(topic)
 
+        vec_title_lens = np.array(title_lens)
+        vec_titles = np.zeros((self.batch_size, self.max_utt_size), dtype=np.int32)
         vec_context_lens = np.array(context_lens)
-        vec_context = np.zeros((self.batch_size, np.max(vec_context_lens), self.max_utt_size), dtype=np.int32)
+        vec_contexts = np.zeros((self.batch_size, np.max(vec_context_lens), self.max_utt_size), dtype=np.int32)
         vec_out_lens = np.array(out_lens)
         vec_outs = np.zeros((self.batch_size, np.max(out_lens)), dtype=np.int32)
         vec_out_topics = np.array(out_topics)
 
         for b_id in range(self.batch_size):
             vec_outs[b_id, 0:vec_out_lens[b_id]] = out_utts[b_id]
-            vec_context[b_id, 0:vec_context_lens[b_id], :] = np.array(context_utts[b_id])
+            vec_contexts[b_id, 0:vec_context_lens[b_id], :] = np.array(context_utts[b_id])
+            vec_titles[b_id, :] = titles[b_id]
 
-        return vec_context, vec_context_lens, vec_outs, vec_out_lens, vec_out_topics
+        return vec_titles, vec_title_lens, vec_contexts, vec_context_lens, vec_outs, vec_out_lens, vec_out_topics
