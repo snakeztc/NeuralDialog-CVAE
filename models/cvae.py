@@ -320,6 +320,10 @@ class RnnCVAE(BaseTFModel):
             out_cell = tf.contrib.rnn.OutputProjectionWrapper(
                 attn_cell, self.vocab_size)
 
+            # dec_init_state must be a instance of AttentionWrapperState Class
+            dec_init_state = out_cell.zero_state(batch_size, dtype=tf.float32).clone(
+                cell_state=dec_init_state)
+
             # Decoder
             decoder = tf.contrib.seq2seq.BasicDecoder(
                 cell=out_cell, helper=helper, initial_state=dec_init_state)
