@@ -45,16 +45,22 @@ class BaseTFModel(object):
 
     @staticmethod
     def get_rnncell(cell_type, cell_size, keep_prob, num_layer):
-        if cell_type == "gru":
-            cell = rnn_cell.GRUCell(cell_size)
-        else:
-            cell = rnn_cell.LSTMCell(cell_size, use_peepholes=False, forget_bias=1.0)
+        cells = []
+        for _ in range(num_layer):
+            if cell_type == "gru":
+                cell = rnn_cell.GRUCell(cell_size)
+            else:
+                cell = rnn_cell.LSTMCell(cell_size, use_peepholes=False, forget_bias=1.0)
 
-        if keep_prob < 1.0:
-            cell = rnn_cell.DropoutWrapper(cell, output_keep_prob=keep_prob)
+            if keep_prob < 1.0:
+                cell = rnn_cell.DropoutWrapper(cell, output_keep_prob=keep_prob)
+
+            cells.append(cell)
 
         if num_layer > 1:
-            cell = rnn_cell.MultiRNNCell([cell] * num_layer, state_is_tuple=True)
+            cell = rnn_cell.MultiRNNCell(cells, state_is_tuple=True)
+        else:
+            cell = cells[0]
 
         return cell
 
