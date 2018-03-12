@@ -226,7 +226,13 @@ class KgRnnCVAE(BaseTFModel):
                 sequence_length=self.context_lens)
 
             if config.num_layer > 1:
+                if config.cell_type == 'lstm':
+                    enc_last_state = [temp.h for temp in enc_last_state]
+
                 enc_last_state = tf.concat(enc_last_state, 1)
+            else:
+                if config.cell_type == 'lstm':
+                    enc_last_state = enc_last_state.h
 
         # combine with other attributes
         if config.use_hcf:
@@ -286,11 +292,21 @@ class KgRnnCVAE(BaseTFModel):
 
             # Decoder
             if config.num_layer > 1:
-                dec_init_state = [layers.fully_connected(dec_inputs, self.dec_cell_size, activation_fn=None,
-                                                        scope="init_state-%d" % i) for i in range(config.num_layer)]
+                dec_init_state = []
+                for i in range(config.num_layer):
+                    temp_init = layers.fully_connected(dec_inputs, self.dec_cell_size, activation_fn=None,
+                                                        scope="init_state-%d" % i)
+                    if config.cell_type == 'lstm':
+                        temp_init = rnn_cell.LSTMStateTuple(temp_init, temp_init)
+
+                    dec_init_state.append(temp_init)
+
                 dec_init_state = tuple(dec_init_state)
             else:
-                dec_init_state = layers.fully_connected(dec_inputs, self.dec_cell_size, activation_fn=None, scope="init_state")
+                dec_init_state = layers.fully_connected(dec_inputs, self.dec_cell_size, activation_fn=None,
+                                                        scope="init_state")
+                if config.cell_type == 'lstm':
+                    dec_init_state = rnn_cell.LSTMStateTuple(dec_init_state, dec_init_state)
 
         with variable_scope.variable_scope("decoder"):
             dec_cell = self.get_rnncell(config.cell_type, self.dec_cell_size, config.keep_prob, config.num_layer)
