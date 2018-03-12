@@ -45,6 +45,7 @@ class BaseTFModel(object):
 
     @staticmethod
     def get_rnncell(cell_type, cell_size, keep_prob, num_layer):
+        # thanks for this solution from @dimeldo
         cells = []
         for _ in range(num_layer):
             if cell_type == "gru":
