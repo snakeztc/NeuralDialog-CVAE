@@ -275,6 +275,7 @@ class KgRnnCVAE(BaseTFModel):
             else:
                 self.da_logits = tf.zeros((batch_size, self.da_vocab_size))
                 dec_inputs = gen_inputs
+                selected_attribute_embedding = None
 
             # Decoder
             if config.num_layer > 1:
