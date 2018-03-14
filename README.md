@@ -1,7 +1,7 @@
 # Knowledge-Guided CVAE for dialog generation
 
 We provide a TensorFlow implementation of the CVAE-based dialog model described in
-**Learning Discourse-level Diversity for Neural Dialog Models using Conditional Variational Autoencoders**, accepted as a long paper in ACL 2017.
+**Learning Discourse-level Diversity for Neural Dialog Models using Conditional Variational Autoencoders**, published as a long paper in ACL 2017.
 See the [paper](https://arxiv.org/abs/1703.10960) for more details.
 
 # Prerequisites
