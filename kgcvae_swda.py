@@ -16,7 +16,7 @@ from models.cvae import KgRnnCVAE
 tf.app.flags.DEFINE_string("word2vec_path", None, "The path to word2vec. Can be None.")
 tf.app.flags.DEFINE_string("data_dir", "data/full_swda_clean_42da_sentiment_dialog_corpus.p", "Raw data directory.")
 tf.app.flags.DEFINE_string("work_dir", "working", "Experiment results directory.")
-tf.app.flags.DEFINE_string("equal_batch", True, "Make each batch has similar length.")
+tf.app.flags.DEFINE_bool("equal_batch", True, "Make each batch has similar length.")
 tf.app.flags.DEFINE_bool("resume", False, "Resume from previous")
 tf.app.flags.DEFINE_bool("forward_only", False, "Only do decoding")
 tf.app.flags.DEFINE_bool("save_model", True, "Create checkpoints")
