@@ -4,7 +4,21 @@ We provide a TensorFlow implementation of the CVAE-based dialog model described 
 **Learning Discourse-level Diversity for Neural Dialog Models using Conditional Variational Autoencoders**, published as a long paper in ACL 2017.
 See the [paper](https://arxiv.org/abs/1703.10960) for more details.
 
-# Prerequisites
+## References 
+If you use any source codes or datasets included in this toolkit in your
+work, please cite the following paper. The bibtex are listed below:
+ 
+    [Zhao et al, 2017]:
+     @inproceedings{zhao2017learning,
+       title={Learning Discourse-level Diversity for Neural Dialog Models using Conditional Variational Autoencoders},
+       author={Zhao, Tiancheng and Zhao, Ran and Eskenazi, Maxine},
+       booktitle={Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+       volume={1},
+       pages={654--664},
+       year={2017}
+     }
+
+## Prerequisites
  - TensorFlow 1.3.0
  - cuDNN 6
  - Python 2.7
@@ -12,7 +26,7 @@ See the [paper](https://arxiv.org/abs/1703.10960) for more details.
  - NLTK
  - You may need to pip install beeprint if the module is missing
 
-# Usage
+## Usage
 ## Train a new model
     python kgcvae_swda.py
 will run default training and save model to ./working
@@ -41,7 +55,7 @@ We release two dataset:
 3. test_mutl_ref.json is only the test data set with multiple references responses with dialog act annotations. The multiple referneces are collected
 according to the method described in the Appendix of the paper.
 
-# Data Format
+## Data Format
 If you want to train the model on your own data. Please create a pickle file has the following format:
 
     # The top directory is a python dictionary
@@ -69,18 +83,3 @@ If you want to train the model on your own data. Please create a pickle file has
     ('B','especially your foreign cars',['statement-non-opinion'])
 
 Put the resulting file into ./data and set the **data_dir** in kgcvae_swda.py
-
-
-# References 
-If you use any source codes or datasets included in this toolkit in your
-work, please cite the following paper. The bibtex are listed below:
- 
-    [Zhao et al, 2017]:
-     @inproceedings{zhao2017learning,
-       title={Learning Discourse-level Diversity for Neural Dialog Models using Conditional Variational Autoencoders},
-       author={Zhao, Tiancheng and Zhao, Ran and Eskenazi, Maxine},
-       booktitle={Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
-       volume={1},
-       pages={654--664},
-       year={2017}
-     }
