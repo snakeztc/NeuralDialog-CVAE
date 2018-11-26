@@ -4,9 +4,6 @@ We provide a TensorFlow implementation of the CVAE-based dialog model described 
 **Learning Discourse-level Diversity for Neural Dialog Models using Conditional Variational Autoencoders**, published as a long paper in ACL 2017.
 See the [paper](https://arxiv.org/abs/1703.10960) for more details.
 
-## External Implementation
-The baseline method HRED using the same SwitchBoard dataset is also implemented on **Texar**, a general-purpose text generation toolkit. Checkout [here](https://github.com/asyml/texar/tree/master/examples/hierarchical_dialog).
-
 ## References 
 If you use any source codes or datasets included in this toolkit in your
 work, please cite the following paper. The bibtex are listed below:
@@ -20,6 +17,9 @@ work, please cite the following paper. The bibtex are listed below:
        pages={654--664},
        year={2017}
      }
+
+## External Implementation
+The baseline method HRED using the same SwitchBoard dataset is also implemented on **Texar**, a general-purpose text generation toolkit. Checkout [here](https://github.com/asyml/texar/tree/master/examples/hierarchical_dialog).
 
 ## Prerequisites
  - TensorFlow 1.3.0
